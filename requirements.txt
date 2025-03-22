@@ -1,0 +1,17 @@
+datasets
+faiss-cpu
+langchain
+langchain-community
+Markdown
+tokenizers
+transformers
+unsloth==2025.3.6
+unsloth_zoo==2025.3.4
+unstructured
+vllm
+wandb
+
+ipykernel
+python-dotenv
+loguru
+gradio
