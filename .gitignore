@@ -1,3 +1,10 @@
+# DeepSearch
+.ruff_cache/
+saved_data/
+saved_models/
+faiss_index/
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
