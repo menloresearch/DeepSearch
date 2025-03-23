@@ -2,6 +2,7 @@
 
 ## Backlog
 
+- [ ] @thinhlpg transfers the project to @bachvudinh
 - [ ] Modify `generate_dataset.py` (**ONLY AFTER** the simple training and benchmark works):
     - [ ] As a data dataset maker, I want to change from LLama 3.1 8B to API call, like claude, gemini or openai. Originally they use 3.1 8B for `Self-Bootstrapping` demonstration, but the dataset quality is low, for sure.
     - [ ] Experimenting with different chunking strategies
@@ -19,16 +20,16 @@
 
 ## 250324
 
-- [ ] @thinhlpg transfers the project to @bachvudinh
-
-## 250323
-
-- [ ] Train the model
-- [ ] Make the dataset
-- [ ] Upload datasets to HF Hub
+- [ ] Train the model v0
+- [ ] Make the dataset v0
+- [ ] Upload dataset v0 to HF Hub
       - Initial dataset from AutoDidact
       - Paraphrased sdataset
 - [ ] Make a simple gradio demo app
+
+## 250323
+
+- brain.exe and back.exe refused to work 😭
 
 ## 250322
 
