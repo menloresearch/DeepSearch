@@ -5,4 +5,3 @@
 - Embedding models, Retrieval mechanisms (BM25, dense, hybrid), Query expansion methods, Reranking strategies
 - Random search engine assignment per query
 - Noise and inconsistency injection to prevent shortcut learning
-

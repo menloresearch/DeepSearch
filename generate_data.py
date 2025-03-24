@@ -47,6 +47,8 @@ vectorstore = FAISS.from_documents(chunks, embeddings)
 vectorstore.save_local("faiss_index")
 print("Saved FAISS index to 'faiss_index'")
 
+# TODO: add the paraphrased chunks to the vector store
+
 # ========= Part 2: QA Generation using Llama Backend =========
 
 # Setup Llama backend via unsloth and vLLM
