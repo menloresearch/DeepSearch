@@ -4,7 +4,8 @@
 
 - [ ] @thinhlpg transfers the project to @bachvudinh
 - [ ] Modify `generate_dataset.py` (**ONLY AFTER** the simple training and benchmark works):
-    - [ ] As a data dataset maker, I want to change from LLama 3.1 8B to API call, like claude, gemini or openai. Originally they use 3.1 8B for `Self-Bootstrapping` demonstration, but the dataset quality is low, for sure.
+    - [ ] Optimize speed (different LLM models, api, tools, etc.)
+    - [ ] Optimize quality. As a data dataset maker, I want to change from LLama 3.1 8B to API call, like claude, gemini or openai. Originally they use 3.1 8B for `Self-Bootstrapping` demonstration, but the dataset quality is low, for sure.
     - [ ] Experimenting with different chunking strategies
 - [ ] [search-backends.md](search-backends.md) design (for more dataset noise (**ONLY AFTER** the simple training dataset works))
 
