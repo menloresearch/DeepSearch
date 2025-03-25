@@ -8,13 +8,17 @@ max_seq_length = 4096 * 2  # Can increase for longer reasoning traces
 lora_rank = 64  # Larger rank = smarter, but slower
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name="meta-llama/meta-Llama-3.1-8B-Instruct",
+    model_name="meta-llama/Llama-3.2-1B-Instruct",
     max_seq_length=max_seq_length,
     load_in_4bit=True,  # False for LoRA 16bit
     fast_inference=True,  # Enable vLLM fast inference
     max_lora_rank=lora_rank,
     gpu_memory_utilization=0.6,  # Reduce if out of memory
 )
+
+
+print(tokenizer.chat_template)  # See what format Qwen expects
+
 
 model = FastLanguageModel.get_peft_model(
     model,

@@ -34,7 +34,7 @@ docs = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 chunks = text_splitter.split_documents(docs)
 
-# Save chunks for later use
+# Save chunks for later use # TODO: change to csv? easier inspect.
 os.makedirs("saved_data", exist_ok=True)
 with open("saved_data/chunks.pkl", "wb") as f:
     pickle.dump(chunks, f)

@@ -47,6 +47,37 @@ percentage of correct answers: 0.19402985074626866
 [rank0]:[W320 07:13:50.651270455 ProcessGroupNCCL.cpp:1250] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
 ```
 
+- Training log with paraphrased dataset (no new reward function yet!) - Disappointing results
+
+  ```bash
+
+.2587745785713196, 'completion_length': 374.3125, 'kl': 0.004571444820612669, 'epoch': 0.34}
+{'train_runtime': 7419.1437, 'train_samples_per_second': 0.218, 'train_steps_per_second': 0.014, 'train_loss': 0.00037626780881639505, 'epoch': 0.34}
+100%|████████████████████████████████████████████████████████| 101/101 [2:03:39<00:00, 73.46s/it]
+Processed prompts: 100%|█| 67/67 [00:19<00:00,  3.51it/s, est. speed input: 1016.34 toks/s, outpu
+Processed prompts: 100%|█| 66/66 [00:21<00:00,  3.03it/s, est. speed input: 2086.78 toks/s, outpu
+Processed prompts: 100%|█| 19/19 [00:14<00:00,  1.28it/s, est. speed input: 1326.10 toks/s, outpu
+Processed prompts: 100%|█| 14/14 [00:14<00:00,  1.03s/it, est. speed input: 1363.04 toks/s, outpu
+Processed prompts: 100%|█| 9/9 [00:13<00:00,  1.55s/it, est. speed input: 1153.10 toks/s, output:
+Processed prompts: 100%|█| 67/67 [00:02<00:00, 28.46it/s, est. speed input: 5843.91 toks/s, outpu
+RESULTS:
+percentage of correct answers: 0.3582089552238806
+==============================
+
+Processed prompts: 100%|█| 67/67 [00:20<00:00,  3.20it/s, est. speed input: 925.56 toks/s, output
+Processed prompts: 100%|█| 36/36 [00:13<00:00,  2.63it/s, est. speed input: 1755.08 toks/s, outpu
+Processed prompts: 100%|█| 11/11 [00:09<00:00,  1.19it/s, est. speed input: 1254.10 toks/s, outpu
+Processed prompts: 100%|█| 8/8 [00:09<00:00,  1.15s/it, est. speed input: 1192.77 toks/s, output:
+Processed prompts: 100%|█| 4/4 [00:06<00:00,  1.67s/it, est. speed input: 1063.38 toks/s, output:
+Processed prompts: 100%|█| 67/67 [00:02<00:00, 29.78it/s, est. speed input: 5244.11 toks/s, outpu
+RESULTS:
+percentage of correct answers: 0.2835820895522388
+==============================
+
+[rank0]:[W324 11:21:27.955684565 ProcessGroupNCCL.cpp:1250] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
+
+  ```
+
 ## Getting some sense of the eval data or benchmark
 
 - > For example, benchmarks like ARC-AGI, which involve visual reasoning, remain challenging for these models, even though they might seem straightforward to a human. (ichigo)

@@ -8,21 +8,80 @@ This note is a collection of stolen reward functions and tips from other project
     - Label studio suggest consult domain experts -> ask the LLM to be search engine expert??
     - Starting from the default of AutoDiact should be good enough, then figure out big brain moves from there
 
+- [ ] Reward exact matches only, don't increase gradually. For example, 4 or 5 attempts would get 1 point or half a point, don't scale up (e.g., 10 attempts doesn't scale up further) (don't reward retry behavior)
+    - Insight from Alphamaze: don't plan for too many cases, scope down to just 1-2 things to generalize rather than being too detailed
+
 ## Implementation Phases
 
-- [ ] 1.Just keep the default ones from AutoDidact and add the Exact Match Idea
+- [x] V0. Just keep the default ones from AutoDidact and add the Exact Match Idea
     - Oh they only use 2 reward functions "reward_correctness" and "reward_formatting"
-- [ ] 2. Add more if needed.
+- [ ] V1. Add more reward functions
+    - Retrying
+        - Need mechanism to count number of retrying attempts
+    - Exact match
+    - Hold up, Do I also need LLM for those two? - NO, we are doing exact match, just write the rules, then if else
 
 ## Psuedo code
 
 ```python
 
+def reward_exact_match(completions, expected_result, **kwargs) -> list[float]:
+    """Reward exact matches with search results
+    Returns 1.0 for exact match, 0.0 otherwise"""
+    responses = [completion[0]["content"] for completion in completions]
+    return [1.0 if r == expected_result else 0.0 for r in responses]
 
+def reward_retry_behavior(completions, **kwargs) -> list[float]:
+    """Reward retrying search behavior but cap it
+    Returns:
+    - 0.5 for 2-5 search attempts
+    - 0.0 for <2 or >5 attempts to avoid reward hacking
+    """
+    def count_search_attempts(response):
+        # Adjust this pattern based on how your search attempts are formatted
+        search_pattern = r"Searching for:.*?"
+        attempts = len(re.findall(search_pattern, response))
+        if 2 <= attempts <= 5:
+            return 0.5
+        return 0.0
 
+    responses = [completion[0]["content"] for completion in completions]
+    return [count_search_attempts(r) for r in responses]
 
+run_agent = rl_helpers.run_agent
+reward_correctness = rl_helpers.build_reward_correctness_fn(
+    verifier_generate_fn,
+    tokenizer,
+)
+reward_formatting = rl_helpers.reward_formatting
+
+import UnslothGRPOTrainerTemp
+
+trainer = UnslothGRPOTrainerTemp.UnslothGRPOTrainer(
+    model=model,
+    processing_class=tokenizer,
+    reward_funcs=[
+        reward_correctness,
+        reward_formatting,
+    ],
+    args=training_args,
+    train_dataset=train_dataset,
+)
 
 ```
+
+## Anatomy of reward_correctness and reward_formatting
+
+The `reward_correctness` and `reward_formatting` functions are key components in our reinforcement learning setup. Let's break down how they work:
+
+- `reward_correctness`
+    - Student LLM generate the answer
+    - Generated answer is compared with the correct answer, scoring by another LLM
+- `reward_formatting`
+    - Student LLM generate the answer
+    - Generated answer is compared with the correct answer, scoring by another LLM
+
+![Reward Function Anatomy](assets/reward-function-anatomy.excalidraw.png)
 
 ## Get a sense of Reward functions
 

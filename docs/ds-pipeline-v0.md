@@ -28,7 +28,9 @@
         - iterate over the file
         - paraphrase the chunk [paraphrase-prompt.md](paraphrase-prompt.md)
         - add the paraphrased chunks to the vector store (how? will it affect the original chunk id?)
-            - Can just append the new chunks to the existing file?
+            - Can just append the new chunks to the existing file - Yes, but:
+                - The original vectors (first 10 in your example) KEEP their IDs (0-9)
+                - New vectors (last 10) get new IDs (10-19)
         - save the vector store
         - save the question json file
 - [ ] Should I ass wrong information or not? How correct should the paraphrased chunk be? How many paraphased chunks should I add for each original chunk? - **V0.1? for now just use simple paraphrasing with correct information.**

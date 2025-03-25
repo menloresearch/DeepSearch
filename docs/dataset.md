@@ -4,11 +4,22 @@ This document describes the creation of a data pipeline to generate a dataset.
 
 ## Implementation Phases
 
-- [ ] 1.Simple chunk paraphrasing logic that's just work
-    - After splitting, feed the splitted chunks into LLM to paraphrase
-    - Rebuil the FAISS index with the paraphrased chunks
-    - Don't touch `question.json`
-- [ ] 2.Enhance the dataset quality with API (check backlog)
+- [x] V0 Initial dataset from AutoDidact (V -1)
+    - saved_data/chunks.pkl (need to keep this to create later dataset)
+    - saved_data/questions.json
+    - faiss_index/
+- [x] V1 Paraphrased dataset
+    - ~~paraphrased_chunks.pkl (no need, this sucks)~~
+    - saved_data/chunks.pkl (this is for the ground truth chunks)
+    - saved_data/questions.json
+    - faiss_index/ (already contained all the documents ✅) (this include 3 new paraphrased chunks)
+
+- [ ] V2 Paraphrased dataset with API
+    - API (for better quality)
+    - questions.json
+    - faiss_index/ (already contained all the documents ✅) (this include 3 new paraphrased chunks)
+- [ ] V3
+    - IDK, let's survive V1 first.
 
 ## Inital idea from @tikikun
 
