@@ -14,19 +14,24 @@
     - <https://arxiv.org/pdf/2502.19328>
     - <https://github.com/THU-KEG/Agentic-Reward-Modeling>
     - <https://www.themoonlight.io/en/review/agentic-reward-modeling-integrating-human-preferences-with-verifiable-correctness-signals-for-reliable-reward-systems>
+- [ ] Upload datasets to HF Hub
+- [ ] Make a simple gradio demo app
 
 ## yymmdd
 
 - [ ] task description
 
+## 250325
+
+- [ ] update new reward functions in [reward-functions.md](reward-functions.md)
+- [ ] Train the model v0 (with new data and reward functions) (might be another 2 hours)
+- [ ] Convert this notebook to script [250324_generate_data_anatomy.ipynb](../notebooks/250324_generate_data_anatomy.ipynb)
+
 ## 250324
 
-- [ ] Train the model v0
-- [ ] Make the dataset v0
-- [ ] Upload dataset v0 to HF Hub
-      - Initial dataset from AutoDidact
-      - Paraphrased sdataset
-- [ ] Make a simple gradio demo app
+- [x] Make the dataset v0
+- [x] Train with new data and default reward functions (it took 2 hours on 1xA6000 😭)
+    - Got poor result (50% Accuracy down to 35%) 📉
 
 ## 250323
 

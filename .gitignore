@@ -4,6 +4,10 @@ saved_data/
 saved_models/
 faiss_index/
 .vscode/
+unsloth_compiled_cache/
+full_local_training/
+grpo_trainer_lora_model/
+qa_log.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
