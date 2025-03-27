@@ -3,40 +3,33 @@ Search module for RL training loop.
 This module provides functions to search through vectorized documents and retrieve question-answer pairs.
 """
 
-import pickle
 import json
 import random
-import asyncio
-from typing import List, Tuple, Optional, Union, Dict, Any
-from enum import Enum
-from pydantic import BaseModel
-from langchain.vectorstores import FAISS
+
 from datasets import Dataset
-from embeddings import CustomHuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
+
+from src.config import DATA_DIR, logger
+from src.embeddings import CustomHuggingFaceEmbeddings
 
 
 # Load pre-saved vectorstore
 def load_vectorstore():
     """Load the pre-saved FAISS index"""
     try:
-        import os
-
         embeddings = CustomHuggingFaceEmbeddings()
-        # Load the FAISS index with absolute path
-        index_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "faiss_index"
-        )
-        print(f"Loading FAISS index from: {index_path}")
+        # Load the FAISS index from the data directory
+        logger.info(f"Loading FAISS index from: {DATA_DIR}")
         vectorstore = FAISS.load_local(
-            index_path, embeddings, allow_dangerous_deserialization=True
+            str(DATA_DIR), embeddings, allow_dangerous_deserialization=True
         )
-        print("Successfully loaded FAISS index")
+        logger.info("Successfully loaded FAISS index")
         return vectorstore
     except Exception as e:
-        print(f"Error loading vectorstore: {e}")
+        logger.error(f"Error loading vectorstore: {e}")
         import traceback
 
-        traceback.print_exc()
+        logger.debug(traceback.format_exc())
         return None
 
 
@@ -44,13 +37,13 @@ def load_vectorstore():
 try:
     vectorstore = load_vectorstore()
     if vectorstore is None:
-        print("Warning: FAISS vectorstore could not be loaded.")
+        logger.warning("FAISS vectorstore could not be loaded.")
 except Exception as e:
-    print(f"Error loading vectorstore: {e}")
+    logger.error(f"Error loading vectorstore: {e}")
     vectorstore = None
 
 
-def search(query: str, return_type=str, results: int = 5) -> Union[str, List[str]]:
+def search(query: str, return_type=str, results: int = 5):
     """
     Search for relevant chunks using similarity search.
 
@@ -82,51 +75,36 @@ def search(query: str, return_type=str, results: int = 5) -> Union[str, List[str
 
 # Load questions from saved data
 def load_qa_data():
-    """Load the pre-generated questions and document chunks"""
+    """Load the pre-generated questions"""
     try:
-        import os
-
-        # Get absolute paths to data files
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        chunks_path = os.path.join(base_dir, "saved_data", "chunks.pkl")
-        questions_path = os.path.join(base_dir, "saved_data", "questions.json")
-
-        print(f"Loading chunks from: {chunks_path}")
-        print(f"Loading questions from: {questions_path}")
-
-        # Load the chunks
-        with open(chunks_path, "rb") as f:
-            chunks = pickle.load(f)
+        questions_path = DATA_DIR / "questions.json"
+        logger.info(f"Loading questions from: {questions_path}")
 
         # Load the questions
         with open(questions_path, "r") as f:
             questions = json.load(f)
 
-        print(
-            f"Successfully loaded {len(chunks)} chunks and {len(questions)} questions"
-        )
-        return chunks, questions
+        logger.info(f"Successfully loaded {len(questions)} questions")
+        return questions
     except Exception as e:
-        print(f"Error loading QA data: {e}")
+        logger.error(f"Error loading QA data: {e}")
         import traceback
 
-        traceback.print_exc()
-        return None, None
+        logger.debug(traceback.format_exc())
+        return None
 
 
-# Load chunks and questions when module is imported
+# Load questions when module is imported
 try:
-    chunks, questions = load_qa_data()
-    if chunks is None or questions is None:
-        print("Warning: Could not load QA data.")
+    questions = load_qa_data()
+    if questions is None:
+        logger.warning("Could not load QA data.")
 except Exception as e:
-    print(f"Error initializing QA data: {e}")
-    chunks, questions = None, None
+    logger.error(f"Error initializing QA data: {e}")
+    questions = None
 
 
-def get_question_answer(
-    idx: Optional[int] = None, return_both: bool = True
-) -> Union[dict, str]:
+def get_question_answer(idx=None, return_both: bool = True) -> dict:
     """
     Get a question-answer pair either by index or randomly.
 
@@ -148,7 +126,7 @@ def get_question_answer(
         qa_pair = questions[idx]
     else:
         raise ValueError(
-            f"Index out of range. Must be between 0 and {len(questions)-1}"
+            f"Index out of range. Must be between 0 and {len(questions) - 1}"
         )
 
     question = qa_pair["question"]
@@ -168,7 +146,7 @@ def get_question_count() -> int:
     return len(questions)
 
 
-def get_qa_dataset():
+def get_qa_dataset() -> tuple:
     """
     Return a HuggingFace Dataset containing question and answer pairs.
 

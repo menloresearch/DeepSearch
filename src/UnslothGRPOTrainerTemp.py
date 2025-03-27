@@ -1,18 +1,21 @@
-from torch import Tensor
+import os
+from contextlib import nullcontext
+from dataclasses import dataclass, field
+from typing import *
+
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
+from packaging.version import Version
 from trl.trainer.grpo_trainer import (
     Any,
     AutoModelForCausalLM,
     AutoModelForSequenceClassification,
     AutoTokenizer,
     Dataset,
-    GRPOConfig,
-    GRPOTrainer,
     GenerationConfig,
+    GRPOConfig,
     IterableDataset,
-    LLM,
     Optional,
     PeftConfig,
     PreTrainedModel,
@@ -41,7 +44,6 @@ from trl.trainer.grpo_trainer import (
     nn,
     os,
     pad,
-    patch,
     prepare_deepspeed,
     set_seed,
     textwrap,
@@ -50,41 +52,7 @@ from trl.trainer.grpo_trainer import (
     unwrap_model_for_generation,
     version,
     wandb,
-    warnings,
-    os,
-    torch,
-    transformers,
-    Any,
-    LLM,
-    Union,
-    apply_chat_template,
-    broadcast_object_list,
-    gather,
-    gather_object,
-    is_conversational,
-    maybe_apply_chat_template,
-    nn,
-    os,
-    pad,
-    torch,
-    unwrap_model_for_generation,
-    wandb,
-    GRPOTrainer,
-    Trainer,
-    gather,
-    os,
-    torch,
 )
-
-
-import os
-from typing import *
-from dataclasses import dataclass, field
-from packaging.version import Version
-import torch
-import numpy as np
-from contextlib import nullcontext
-from torch.nn import functional as F
 
 torch_compile_options = {
     "epilogue_fusion": True,
