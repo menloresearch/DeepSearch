@@ -5,13 +5,13 @@ langchain-community
 Markdown
 tokenizers
 unsloth==2025.3.6
-transformers==4.49.0
 unsloth_zoo==2025.3.4
 unstructured
-vllm
-wandb
+vllm==0.7.2
 
+transformers==4.49.0
 ipykernel
 python-dotenv
 loguru
 gradio
+tensorboard

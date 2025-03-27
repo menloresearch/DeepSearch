@@ -8,10 +8,18 @@ import json
 import random
 import sys
 import time
-from typing import Any, Dict
+from pathlib import Path
 
-# Import our search module (ensure these functions follow the new interfaces)
-from search_module import get_question_answer, get_question_count, search
+# Add project root to Python path
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
+
+# Import our search module and config
+from src.config import DATA_DIR, logger
+from src.search_module import get_question_answer, get_question_count, search
+
+# TODO: Import verify function and router from appropriate module
+# TODO: Consider moving verify function to search_module.py for better organization
 
 
 class SimpleQAEnvironment:
@@ -21,27 +29,30 @@ class SimpleQAEnvironment:
         self.score = {"correct": 0, "incorrect": 0, "total": 0}
         self.session_data = []
         self.current_question = None
+        self.session_file = DATA_DIR / "qa_sessions"
 
     def display_welcome(self):
         """Display welcome message and instructions."""
-        print("\n===== Search & Answer Environment =====")
-        print("Answer questions using the search tool to find relevant information.")
-        print("Type 'q' to quit, 'h' for help.\n")
+        logger.info("===== Search & Answer Environment =====")
+        logger.info(
+            "Answer questions using the search tool to find relevant information."
+        )
+        logger.info("Type 'q' to quit, 'h' for help.\n")
 
     def display_help(self):
         """Display help information."""
-        print("\n===== Commands =====")
-        print("n          - Get a new question")
-        print("s <query>  - Search for information (e.g., s program launch date)")
-        print("a <answer> - Submit your answer")
-        print("h          - Display this help message")
-        print("q          - Quit the program\n")
+        logger.info("\n===== Commands =====")
+        logger.info("n          - Get a new question")
+        logger.info("s <query>  - Search for information (e.g., s program launch date)")
+        logger.info("a <answer> - Submit your answer")
+        logger.info("h          - Display this help message")
+        logger.info("q          - Quit the program\n")
 
     def display_question(self, question: str):
         """Display the current question."""
-        print("\n===== QUESTION =====")
-        print(question)
-        print("=====================\n")
+        logger.info("\n===== QUESTION =====")
+        logger.info(question)
+        logger.info("=====================\n")
 
     def get_new_question(self) -> str:
         """Get a new random question and set it as current."""
@@ -66,30 +77,30 @@ class SimpleQAEnvironment:
     def perform_search(self, query: str):
         """Perform a search with the given query."""
         if not query:
-            print("Please provide a search query.")
+            logger.warning("Please provide a search query.")
             return
 
         try:
-            print("\n===== SEARCH RESULTS =====")
+            logger.info("\n===== SEARCH RESULTS =====")
             results = search(query)
-            print(results)
-            print("==========================\n")
+            logger.info(results)
+            logger.info("==========================\n")
 
             # Record search in current question data if available.
             if self.current_question is not None:
                 self.current_question["searches"].append(query)
 
         except Exception as e:
-            print(f"Error searching: {str(e)}")
+            logger.error(f"Error searching: {str(e)}")
 
     async def process_answer(self, user_answer: str):
         """Process and verify the user's answer."""
         if self.current_question is None:
-            print("Please get a question first.")
+            logger.warning("Please get a question first.")
             return
 
         if not user_answer:
-            print("Please provide an answer.")
+            logger.warning("Please provide an answer.")
             return
 
         # Record answer and calculate time taken.
@@ -100,27 +111,29 @@ class SimpleQAEnvironment:
         )
 
         try:
-            print("\nVerifying your answer...")
-            correct = await verify(
-                user_answer,
-                self.current_question["question"],
-                self.current_question["correct_answer"],
-                router,
-            )
+            logger.info("\nVerifying your answer...")
+            # TODO: Implement verify function in search_module.py
+            # correct = await verify(
+            #     user_answer,
+            #     self.current_question["question"],
+            #     self.current_question["correct_answer"],
+            #     router,
+            # )
+            correct = False  # Temporary placeholder until verify is implemented
 
             # Update score and inform the user.
             self.score["total"] += 1
             if correct:
                 self.score["correct"] += 1
-                print("\n✓ Your answer is CORRECT!")
+                logger.success("\n✓ Your answer is CORRECT!")
             else:
                 self.score["incorrect"] += 1
-                print("\n✗ Your answer is INCORRECT.")
-                print(
+                logger.error("\n✗ Your answer is INCORRECT.")
+                logger.info(
                     f"\nThe correct answer is:\n{self.current_question['correct_answer']}"
                 )
 
-            print(f"\nScore: {self.score['correct']}/{self.score['total']}")
+            logger.info(f"\nScore: {self.score['correct']}/{self.score['total']}")
 
             # Record the result and add the current question to the session data.
             self.current_question["is_correct"] = correct
@@ -130,15 +143,18 @@ class SimpleQAEnvironment:
             self.current_question = None
 
         except Exception as e:
-            print(f"Error verifying answer: {str(e)}")
+            logger.error(f"Error verifying answer: {str(e)}")
 
     def save_session(self):
         """Save the session data to a file."""
         if not self.session_data:
             return
 
+        # Ensure session directory exists
+        self.session_file.mkdir(parents=True, exist_ok=True)
+
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        filename = f"qa_session_{timestamp}.json"
+        filename = self.session_file / f"qa_session_{timestamp}.json"
 
         session_data = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -149,9 +165,9 @@ class SimpleQAEnvironment:
         try:
             with open(filename, "w") as f:
                 json.dump(session_data, f, indent=2)
-            print(f"\nSession data saved to {filename}")
+            logger.info(f"\nSession data saved to {filename}")
         except Exception as e:
-            print(f"Error saving session data: {str(e)}")
+            logger.error(f"Error saving session data: {str(e)}")
 
     async def run(self):
         """Run the main command loop."""
@@ -178,11 +194,11 @@ class SimpleQAEnvironment:
                 answer = command[2:].strip()
                 await self.process_answer(answer)
             else:
-                print("Unknown command. Type 'h' for help.")
+                logger.warning("Unknown command. Type 'h' for help.")
 
         # Save session data on exit.
         self.save_session()
-        print("\nThank you for using the Q&A environment!")
+        logger.info("\nThank you for using the Q&A environment!")
 
 
 async def main():
@@ -195,6 +211,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nProgram terminated by user.")
+        logger.info("\nProgram terminated by user.")
     except Exception as e:
-        print(f"\nError: {str(e)}")
+        logger.error(f"\nError: {str(e)}")

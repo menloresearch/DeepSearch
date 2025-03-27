@@ -1,7 +1,4 @@
-from typing import List, Union
-
 import torch
-import torch.nn.functional as F
 from langchain.embeddings.base import Embeddings
 from transformers import AutoModel, AutoTokenizer
 
@@ -18,9 +15,7 @@ class CustomHuggingFaceEmbeddings(Embeddings):
     - "query": uses mean pooling over tokens (weighted by the attention mask) for query embeddings.
     """
 
-    def __init__(
-        self, model_name: str = DEFAULT_MODEL_NAME, default_mode: str = "sentence"
-    ):
+    def __init__(self, model_name=DEFAULT_MODEL_NAME, default_mode="sentence"):
         self.model_name = model_name
         # Set device to GPU if available, else CPU
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -29,7 +24,8 @@ class CustomHuggingFaceEmbeddings(Embeddings):
         self.default_mode = default_mode  # "sentence" or "query"
         self.model.eval()  # Set model to evaluation mode
 
-    def get_embedding(self, text: Union[str, List[str]], mode: str = None):
+    def get_embedding(self, text, mode=None):
+        """Get embeddings for text using specified mode"""
         if mode is None:
             mode = self.default_mode
         assert mode in (
@@ -59,14 +55,14 @@ class CustomHuggingFaceEmbeddings(Embeddings):
             vectors = output.last_hidden_state[:, 0, :]
         return vectors
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    def embed_documents(self, texts):
         """
         Compute embeddings for a list of documents (using sentence mode).
         """
         vectors = self.get_embedding(texts, mode="sentence")
         return vectors.cpu().numpy().tolist()
 
-    def embed_query(self, text: str) -> List[float]:
+    def embed_query(self, text):
         """
         Compute an embedding for a single query.
         """

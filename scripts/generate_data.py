@@ -5,18 +5,22 @@ This script performs two main tasks:
 2. It generates QA pairs from the document using llama.
    For each chunk (using a sliding window for context), it generates multiple question-answer pairs
    with different difficulties. The generation is performed in batch with one retry for failed prompts.
-   Successfully generated QA pairs are saved to "saved_data/questions.json".
+   Successfully generated QA pairs are saved to "data/questions.json".
 
 Requirements:
     pip install langchain faiss-cpu unsloth vllm
 """
 
 import json
-import os
-import pickle
 import re
-from typing import Dict, List, Optional, Tuple
+import sys
+from pathlib import Path
 
+# Add project root to Python path
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
+
+import pandas as pd
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # ========= Part 1: Document Processing and Embedding Generation =========
@@ -24,7 +28,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_community.vectorstores import FAISS
 
-from embeddings import CustomHuggingFaceEmbeddings
+from src.config import DATA_DIR, logger
+from src.embeddings import CustomHuggingFaceEmbeddings
 
 # Load your markdown file (adjust the path as needed)
 loader = UnstructuredMarkdownLoader("./data/mission_report.md")
@@ -34,18 +39,23 @@ docs = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 chunks = text_splitter.split_documents(docs)
 
-# Save chunks for later use # TODO: change to csv? easier inspect.
-os.makedirs("saved_data", exist_ok=True)
-with open("saved_data/chunks.pkl", "wb") as f:
-    pickle.dump(chunks, f)
-print(f"Saved {len(chunks)} chunks to saved_data/chunks.pkl")
+# Save chunks to CSV for easy inspection
+chunks_df = pd.DataFrame(
+    {
+        "chunk_id": range(1, len(chunks) + 1),
+        "content": [chunk.page_content for chunk in chunks],
+        "metadata": [chunk.metadata for chunk in chunks],
+    }
+)
+chunks_df.to_csv(DATA_DIR / "chunks.csv", index=False)
+logger.info(f"Saved {len(chunks)} chunks to {DATA_DIR}/chunks.csv")
 
 embeddings = CustomHuggingFaceEmbeddings()
 
 # Create a FAISS vector store from the document chunks and save it locally
 vectorstore = FAISS.from_documents(chunks, embeddings)
-vectorstore.save_local("faiss_index")
-print("Saved FAISS index to 'faiss_index'")
+vectorstore.save_local(str(DATA_DIR))
+logger.info(f"Saved FAISS index to {DATA_DIR}")
 
 # TODO: add the paraphrased chunks to the vector store
 
@@ -54,8 +64,6 @@ print("Saved FAISS index to 'faiss_index'")
 # Setup Llama backend via unsloth and vLLM
 from unsloth import FastLanguageModel
 from vllm import SamplingParams
-
-import rl_helpers  # Ensure you have this or remove if not used
 
 # Load the Llama model (adjust parameters as needed)
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -74,7 +82,7 @@ sampling_params = SamplingParams(
 )
 
 
-def batch_generate(prompts: List[str]) -> List[str]:
+def batch_generate(prompts: list) -> list:
     """
     Given a list of prompt strings, returns a list of generated outputs.
     """
@@ -91,7 +99,7 @@ def batch_generate(prompts: List[str]) -> List[str]:
     return [output.outputs[0].text for output in outputs]
 
 
-def parse_qa_block(block: str) -> Optional[Tuple[str, str, str]]:
+def parse_qa_block(block: str):
     """
     Parses a QA block that should contain exactly three non-empty lines:
       - A line starting with "Question:"
@@ -124,7 +132,7 @@ def parse_qa_block(block: str) -> Optional[Tuple[str, str, str]]:
     return None
 
 
-def parse_multiple_qa_output(output: str) -> List[Tuple[str, str, str]]:
+def parse_multiple_qa_output(output: str) -> list:
     """
     Splits the output into blocks (separated by one or more blank lines) and
     attempts to parse each as a QA pair.
@@ -141,46 +149,49 @@ def parse_multiple_qa_output(output: str) -> List[Tuple[str, str, str]]:
 
 
 def generate_question_batch_for_chunks(
-    chunks: List, num_questions: int = 2, difficulty: str = None
-) -> List[Dict]:
+    chunks: list, num_questions: int = 2, difficulty=None
+) -> list:
     """
     Generates QA pairs for multiple chunks in batch.
 
-    For each chunk (except the first and last), a sliding window is used for context:
-      - before: previous chunk's content
-      - current: current chunk's content
-      - after: next chunk's content
-
+    For each chunk, generates questions based on its content only.
     Each prompt instructs the model to output exactly three lines per QA pair with markers.
     Failed prompts are retried once in batch; if still unsuccessful, they are skipped.
 
-    Returns a list of dicts with keys: "chunk_id", "question", "answer", "difficulty".
+    Returns a list of dicts with keys: "chunk_id", "question", "answer", "difficulty", "chunk_content".
     """
     prompts = []
     chunk_ids = []
+    chunk_contents = []
 
-    # Prepare prompts using a sliding window
-    for i in range(1, len(chunks) - 1):
-        before = chunks[i - 1].page_content
-        current = chunks[i].page_content
-        after = chunks[i + 1].page_content
+    # Prepare prompts for each chunk
+    for i, chunk in enumerate(chunks):
+        current = chunk.page_content
         prompt = (
-            f"From the text within ==BEGIN== and ==END==, generate {num_questions} questions with answers.\n"
+            f"You are a question generator. Generate {num_questions} questions based on the following text.\n"
+            "Rules:\n"
+            "1. Questions must be answerable using ONLY the information in the text\n"
+            "2. Answers must be directly stated in the text\n"
+            "3. Each question should test understanding of a different aspect of the text\n"
+            "4. Questions should be clear and specific\n"
+            "5. Answers should be concise and factual\n\n"
             "For each QA pair, output exactly three lines with no extra commentary:\n"
             "Line 1: Question: <your question>\n"
             "Line 2: Answer: <the answer>\n"
             "Line 3: Difficulty: <easy, medium, or hard>\n"
             "Do not include any additional text.\n\n"
-            "==BEGIN==\n"
-            f"{before}\n{current}\n{after}\n"
-            "==END==\n"
+            "Text:\n"
+            f"{current}\n"
         )
         prompts.append(prompt)
-        chunk_ids.append(i)
+        chunk_ids.append(i + 1)  # 1-based indexing
+        chunk_contents.append(current)
 
     # First batch generation
     outputs = batch_generate(prompts)
-    results = [None] * len(outputs)
+    results = []
+    for _ in range(len(outputs)):
+        results.append(None)
     failed_indices = []
 
     # Parse each output
@@ -188,20 +199,46 @@ def generate_question_batch_for_chunks(
         qa_pairs = parse_multiple_qa_output(output)
         if qa_pairs is None or len(qa_pairs) < num_questions:
             failed_indices.append(idx)
+            logger.warning(f"Failed to generate enough QA pairs for chunk {idx + 1}")
         else:
-            results[idx] = qa_pairs[:num_questions]
+            # Validate that answers exist in chunk content
+            valid_pairs = []
+            for q, a, d in qa_pairs:
+                if a.lower() in chunk_contents[idx].lower():
+                    valid_pairs.append((q, a, d))
+                else:
+                    logger.warning(f"Answer not found in chunk content: {a}")
+
+            if len(valid_pairs) >= num_questions:
+                results[idx] = valid_pairs[:num_questions]
+            else:
+                failed_indices.append(idx)
+                logger.warning(f"Not enough valid QA pairs for chunk {idx + 1}")
 
     # Retry failed prompts in batch
     if failed_indices:
-        print(f"Retrying {len(failed_indices)} failed prompt(s)...")
+        logger.info(f"Retrying {len(failed_indices)} failed prompt(s)...")
         retry_prompts = [prompts[i] for i in failed_indices]
         retry_outputs = batch_generate(retry_prompts)
         for j, idx in enumerate(failed_indices):
             qa_pairs = parse_multiple_qa_output(retry_outputs[j])
             if qa_pairs is not None and len(qa_pairs) >= num_questions:
-                results[idx] = qa_pairs[:num_questions]
+                # Validate answers again
+                valid_pairs = []
+                for q, a, d in qa_pairs:
+                    if a.lower() in chunk_contents[idx].lower():
+                        valid_pairs.append((q, a, d))
+
+                if len(valid_pairs) >= num_questions:
+                    results[idx] = valid_pairs[:num_questions]
+                else:
+                    results[idx] = None
+                    logger.warning(
+                        f"Retry failed for chunk {idx + 1}: not enough valid QA pairs"
+                    )
             else:
-                results[idx] = None  # Mark as failed
+                results[idx] = None
+                logger.warning(f"Retry failed for chunk {idx + 1}: parsing failed")
 
     # Build final output, skipping prompts that failed even after retry
     final_questions = []
@@ -214,8 +251,11 @@ def generate_question_batch_for_chunks(
                         "question": qa[0],
                         "answer": qa[1],
                         "difficulty": qa[2],
+                        "chunk_content": chunk_contents[i],
                     }
                 )
+
+    logger.info(f"Generated {len(final_questions)} valid QA pairs")
     return final_questions
 
 
@@ -223,10 +263,10 @@ def generate_question_batch_for_chunks(
 all_questions = generate_question_batch_for_chunks(
     chunks, num_questions=2, difficulty="medium"
 )
-print(f"Generated {len(all_questions)} QA pairs.")
+logger.info(f"Generated {len(all_questions)} QA pairs.")
 
 # Save the QA pairs to a JSON file
-questions_path = os.path.join("saved_data", "questions.json")
+questions_path = DATA_DIR / "questions.json"
 with open(questions_path, "w") as f:
     json.dump(all_questions, f, indent=2)
-print(f"Saved questions to {questions_path}")
+logger.info(f"Saved questions to {questions_path}")
