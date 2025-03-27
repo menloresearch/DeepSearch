@@ -8,67 +8,23 @@ This note is a collection of stolen reward functions and tips from other project
     - Label studio suggest consult domain experts -> ask the LLM to be search engine expert??
     - Starting from the default of AutoDiact should be good enough, then figure out big brain moves from there
 
-- [ ] Reward exact matches only, don't increase gradually. For example, 4 or 5 attempts would get 1 point or half a point, don't scale up (e.g., 10 attempts doesn't scale up further) (don't reward retry behavior)
+- [x] Reward exact matches only, don't increase gradually. For example, 4 or 5 attempts would get 1 point or half a point, don't scale up (e.g., 10 attempts doesn't scale up further) (don't reward retry behavior)
     - Insight from Alphamaze: don't plan for too many cases, scope down to just 1-2 things to generalize rather than being too detailed
 
 ## Implementation Phases
 
 - [x] V0. Just keep the default ones from AutoDidact and add the Exact Match Idea
     - Oh they only use 2 reward functions "reward_correctness" and "reward_formatting"
-- [ ] V1. Add more reward functions
+- [x] V1. Add more reward functions
     - Retrying
         - Need mechanism to count number of retrying attempts
-    - Exact match
+        - log chat state
+        - ~~add xml tag each time it call search function, count number of xml tags~~ can just count number of json object, BUT one assitant response can only have 1 function call according to the code (why is this?)
+        - but how does the model know when to stop retrying? -> the model will decide this itself with the <answer> tag.
+    - Exact match (for chunk querying, not outcome)
+        - can just check chunk ID?
+        - each time it retry, it will add one more result, so we reward all of the results or just the last one?
     - Hold up, Do I also need LLM for those two? - NO, we are doing exact match, just write the rules, then if else
-
-## Psuedo code
-
-```python
-
-def reward_exact_match(completions, expected_result, **kwargs) -> list[float]:
-    """Reward exact matches with search results
-    Returns 1.0 for exact match, 0.0 otherwise"""
-    responses = [completion[0]["content"] for completion in completions]
-    return [1.0 if r == expected_result else 0.0 for r in responses]
-
-def reward_retry_behavior(completions, **kwargs) -> list[float]:
-    """Reward retrying search behavior but cap it
-    Returns:
-    - 0.5 for 2-5 search attempts
-    - 0.0 for <2 or >5 attempts to avoid reward hacking
-    """
-    def count_search_attempts(response):
-        # Adjust this pattern based on how your search attempts are formatted
-        search_pattern = r"Searching for:.*?"
-        attempts = len(re.findall(search_pattern, response))
-        if 2 <= attempts <= 5:
-            return 0.5
-        return 0.0
-
-    responses = [completion[0]["content"] for completion in completions]
-    return [count_search_attempts(r) for r in responses]
-
-run_agent = rl_helpers.run_agent
-reward_correctness = rl_helpers.build_reward_correctness_fn(
-    verifier_generate_fn,
-    tokenizer,
-)
-reward_formatting = rl_helpers.reward_formatting
-
-import UnslothGRPOTrainerTemp
-
-trainer = UnslothGRPOTrainerTemp.UnslothGRPOTrainer(
-    model=model,
-    processing_class=tokenizer,
-    reward_funcs=[
-        reward_correctness,
-        reward_formatting,
-    ],
-    args=training_args,
-    train_dataset=train_dataset,
-)
-
-```
 
 ## Anatomy of reward_correctness and reward_formatting
 
@@ -85,6 +41,7 @@ The `reward_correctness` and `reward_formatting` functions are key components in
 
 ## Get a sense of Reward functions
 
+- <https://github.com/huggingface/trl/blob/main/docs/source/grpo_trainer.md#example-4-multi-task-reward-functions>
 - <https://github.com/kubernetes-bad/reward-composer>
     - Reward Composer is a collection of simple building blocks for making your perfect reward function for Reinforcement Learning training of language models... It's like Lego for GRPO.
 - <https://gist.github.com/willccbb/4676755236bb08cab5f4e54a0475d6fb>
@@ -103,6 +60,19 @@ Run Controlled Tests: Generate model outputs and measure how well the reward fun
 Evaluate for Robustness: Ensure the function avoids penalizing correct responses due to formatting issues or minor variations.
 A/B Testing with RL Agents: Compare performance between models trained with and without the verifiable reward function.
 
+## Reward Scaling
+
+- <https://www.restack.io/p/reinforcement-learning-answer-reward-scaling-cat-ai>
+
+- Linear Scaling: This involves multiplying the rewards by a constant factor. For example, if the original reward is 10 and we apply a scaling factor of 0.1, the new reward becomes 1. This method is straightforward but may not always be effective.
+- Non-linear Scaling: More complex functions can be used to scale rewards, such as logarithmic or exponential functions. These can help in situations where the distribution of rewards is skewed.
+- Adaptive Scaling: This technique adjusts the scaling factor dynamically based on the agent's performance or the variance of received rewards. For instance, if the agent is consistently receiving low rewards, the scaling factor can be increased to encourage more exploration.
+
+## Negative Reward?
+
+- <https://github.com/huggingface/trl/issues/2832>
+- > It doesn't matter if you have negative or positive weights -- all that matters is the group relative advantage. Rewards of {1, 0} will result in advantages of 1 and -1 respectively. That is the same as rewards of {1,-1} which results in 1, -1 Or consider rewards of {1, 1, 2}, this will result in advantages of -1/sqrt(2), -1/sqrt(2), sqrt(2)
+  
 ## Reward Function vs Verifier
 
 Stolen note from unsloth's docs:

@@ -10,6 +10,8 @@ grpo_trainer_lora_model/
 qa_log.txt
 trainer_output_*
 data/
+models/
+graveyard/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
