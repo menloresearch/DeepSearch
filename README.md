@@ -12,6 +12,26 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Evaluation
+
+Compare base model with LoRA-enhanced model performance:
+
+```bash
+# Quick run with defaults
+./eval.sh
+
+# Custom run
+./eval.sh --lora_path "/path/to/lora" --temperature 0.7
+```
+
+Direct Python usage:
+
+```bash
+python eval.py --lora_path "/path/to/lora" --temperature 0.7
+```
+
+The tool generates a results file with accuracy metrics and improvement statistics.
+
 ## Models
 
 You can find our models on Hugging Face 🤗! We're committed to open-source and easy access for the research community.
@@ -36,4 +56,4 @@ We've released our datasets on Hugging Face 🤗 to support reproducibility and 
 
 ## Personal Notes
 
-- **This is research code**, so I'm prioritizing speed over code quality for now. Expect things to be messy—both the code and commit history. Roasting is welcome, but don't judge me too hard; I'll clean it up later. **I don’t know what I don’t know**, but I’m eager (and desperate) to learn and improve, so any constructive feedback is highly appreciated! 💖
+- **This is research code**, so I'm prioritizing speed over code quality for now. Expect things to be messy—both the code and commit history. Roasting is welcome, but don't judge me too hard; I'll clean it up later. **I don't know what I don't know**, but I'm eager (and desperate) to learn and improve, so any constructive feedback is highly appreciated! 💖
