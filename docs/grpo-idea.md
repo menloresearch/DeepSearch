@@ -13,3 +13,7 @@ Tuan
 - <https://unsloth.ai/blog/r1-reasoning>
 - Heheboi let's steal this notebook <https://colab.research.google.com/github/unslothai/notebooks/blob/main/nb/Llama3.1_(8B)-GRPO.ipynb>
 - <https://docs.unsloth.ai/basics/reasoning-grpo-and-rl> - This is like the most simple
+
+## Hugigngface's GRPO trainer
+
+- <https://github.com/huggingface/trl/blob/main/docs/source/grpo_trainer.md>
