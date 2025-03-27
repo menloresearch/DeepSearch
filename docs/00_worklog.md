@@ -9,23 +9,51 @@
     - [ ] Experimenting with different chunking strategies
 - [ ] [search-backends.md](search-backends.md) design (for more dataset noise (**ONLY AFTER** the simple training dataset works))
 
-- [ ] Research a little bit on Agentic Reward Modeling (for designing better reward function maybe?)
-    - <https://medium.com/@techsachin/agentic-reward-modeling-combine-human-preferences-with-verifiable-correctness-signals-for-reliable-76c408b3491c>
-    - <https://arxiv.org/pdf/2502.19328>
-    - <https://github.com/THU-KEG/Agentic-Reward-Modeling>
-    - <https://www.themoonlight.io/en/review/agentic-reward-modeling-integrating-human-preferences-with-verifiable-correctness-signals-for-reliable-reward-systems>
-- [ ] Upload datasets to HF Hub
-- [ ] Make a simple gradio demo app
+- [ ] Train SFT first stage, then GRPO (new idea from @tikikun 250326)
+    - I think this idea is already implemented in search-r1 repo, i'll double check it later.
+- [ ]  Implement quality of life scripts from [brain-rotting-multiple-gpu-workflow-for-dummies.md](brain-rotting-multiple-gpu-workflow-for-dummies.md)
+- [ ] Better verification logic please (should be a fixed for every experiments, not the base model it self)
 
 ## yymmdd
 
 - [ ] task description
 
+## 250329
+
+- brain.exe and back.exe refused to work
+
+## 250328
+
+- [ ] Watch solo leveling with bro  @tikikun 🔥
+- [ ] Figuring out how to keep multiple experiments organized. the repos in the server are a mess 💀💀 (but at least they worked for now)
+
+## 250328 - ❗❗❗D-Day❗❗❗
+
+- [ ] Show the results, or demo
+
+## 250327
+
+- [x] CLEAN THE REPO PLEASE IT'S A MESS 😭😭😭
+    - Double checked all script, runned well :3
+- [ ] Write script to train x-deepseek-r1-distil models (original script only support Llama -instruct models)
+- [ ] Script to continue training from last checkpoint
+- [ ] Make a simple demo app (or just cli inference script should be good)
+- [ ] Upload datasets to HF Hub
+- [ ] Research a little bit on Agentic Reward Modeling (for designing better reward function maybe?) [agentic-reward-modeling.md](agentic-reward-modeling.md)
+
+## 250326
+
+- Fix exact match reward function bug
+- Enhance the training script with better logging and monitoring
+- Train new models
+- Write new eval script
+
 ## 250325
 
-- [ ] update new reward functions in [reward-functions.md](reward-functions.md)
-- [ ] Train the model v0 (with new data and reward functions) (might be another 2 hours)
-- [ ] Convert this notebook to script [250324_generate_data_anatomy.ipynb](../notebooks/250324_generate_data_anatomy.ipynb)
+- [x] Read Search-R1 to get more ideas on how to improve the reward functions (pretty similar idea i suppose)
+- [x] update new reward functions in [reward-functions.md](reward-functions.md)
+- [x] Train the model v0 (with new data and reward functions) (might be another 2 hours)
+    - spoiler: it's not good
 
 ## 250324
 
@@ -68,3 +96,7 @@
 ## 250318
 
 - Idea received <https://github.com/menloresearch/DeepSearch/issues/1>
+
+## Graveyard 💀
+
+- ~~Convert this notebook to script [250324_generate_data_anatomy.ipynb](../notebooks/250324_generate_data_anatomy.ipynb)~~ (no need, already have a script for that)
