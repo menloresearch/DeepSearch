@@ -312,7 +312,7 @@ def evaluate_model(
     # Define all output file paths
     eval_log_file = os.path.join(eval_log_dir, f"{model_prefix}_model_eval_{timestamp}.log")
     output_file = os.path.join(eval_log_dir, f"{model_prefix}_model_results.txt")
-    debug_file = os.path.join(eval_log_dir, f"{model_prefix}_model_results_debug.json")
+    debug_file = os.path.join(eval_log_dir, f"{model_prefix}_model_results_debug.txt")
 
     logger.info(f"Writing evaluation log to: {eval_log_file}")
     logger.info(f"Results will be saved to: {output_file}")
