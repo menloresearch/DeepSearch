@@ -20,9 +20,7 @@ def load_vectorstore():
         embeddings = CustomHuggingFaceEmbeddings()
         # Load the FAISS index from the data directory
         logger.info(f"Loading FAISS index from: {DATA_DIR}")
-        vectorstore = FAISS.load_local(
-            str(DATA_DIR), embeddings, allow_dangerous_deserialization=True
-        )
+        vectorstore = FAISS.load_local(str(DATA_DIR), embeddings, allow_dangerous_deserialization=True)
         logger.info("Successfully loaded FAISS index")
         return vectorstore
     except Exception as e:
@@ -125,9 +123,7 @@ def get_question_answer(idx=None, return_both: bool = True) -> dict:
         # Select question by index
         qa_pair = questions[idx]
     else:
-        raise ValueError(
-            f"Index out of range. Must be between 0 and {len(questions) - 1}"
-        )
+        raise ValueError(f"Index out of range. Must be between 0 and {len(questions) - 1}")
 
     question = qa_pair["question"]
     answer = qa_pair["answer"]
