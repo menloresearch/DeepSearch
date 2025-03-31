@@ -186,12 +186,8 @@ def run_agent_generations(generate_fn, tokenizer, chat_states):
                 full_response = response.outputs[0].text
             else:
                 full_response = response
-            assistant_response = full_response.split(
-                "<|start_header_id|>assistant<|end_header_id|>"
-            )[-1]
-            chat_state["messages"].append(
-                {"role": "assistant", "content": assistant_response}
-            )
+            assistant_response = full_response.split("<|start_header_id|>assistant<|end_header_id|>")[-1]
+            chat_state["messages"].append({"role": "assistant", "content": assistant_response})
             logger.debug(f"Added assistant response to chat state {idx}")
     else:
         logger.debug("No prompts to generate responses for")
@@ -211,9 +207,7 @@ def check_finished_chats(chat_states):
     for chat_state in chat_states:
         if chat_state.get("finished"):
             continue
-        assert (
-            chat_state["messages"][-1]["role"] == "assistant"
-        ), "Expected the last role to be assistant"
+        assert chat_state["messages"][-1]["role"] == "assistant", "Expected the last role to be assistant"
         assistant_response = chat_state["messages"][-1]["content"]
         function_calls = extract_json_objects(assistant_response)
         if len(function_calls) == 0:
@@ -232,17 +226,15 @@ def run_tool_calls(chat_states):
         if chat_state.get("finished"):
             logger.debug("Chat state already finished, skipping tool calls")
             continue
-        assert (
-            chat_state["messages"][-1]["role"] == "assistant"
-        ), "Expected the last role to be assistant to run tool calls"
+        assert chat_state["messages"][-1]["role"] == "assistant", (
+            "Expected the last role to be assistant to run tool calls"
+        )
         try:
             assistant_response = chat_state["messages"][-1]["content"]
             function_calls = extract_json_objects(assistant_response)
             if len(function_calls) > 1:
                 logger.warning("Multiple function calls found in assistant response")
-                raise ValueError(
-                    "Expected only one function call in assistant response"
-                )
+                raise ValueError("Expected only one function call in assistant response")
             elif len(function_calls) == 1:
                 function_call = function_calls[0]
                 query = function_call["function"]["parameters"]["query"]
@@ -257,9 +249,7 @@ def run_tool_calls(chat_states):
                 logger.debug("Added search results to chat state")
         except Exception as e:
             logger.error(f"Error during tool call: {str(e)}")
-            chat_state["messages"].append(
-                {"role": "system", "content": f"Error during post-processing: {str(e)}"}
-            )
+            chat_state["messages"].append({"role": "system", "content": f"Error during post-processing: {str(e)}"})
             chat_state["finished"] = True
     return chat_states
 
@@ -273,14 +263,9 @@ def get_mask(text, tokenizer):
     assistant_ranges = []
     i = 0
     while i < len(encoding.input_ids) - 1:
-        if (
-            encoding.input_ids[i] == start_header_id
-            and encoding.input_ids[i + 1] == assistant_token
-        ):
+        if encoding.input_ids[i] == start_header_id and encoding.input_ids[i + 1] == assistant_token:
             i += 2
-            while (
-                i < len(encoding.input_ids) and encoding.input_ids[i] != end_header_id
-            ):
+            while i < len(encoding.input_ids) and encoding.input_ids[i] != end_header_id:
                 i += 1
             i += 2
             start_idx = i
@@ -319,11 +304,7 @@ class AgenticOutputs:
 
 def get_chat_num_tokens(chat_state, tokenizer):
     chat_text = apply_chat_template(chat_state, tokenizer=tokenizer)["text"]
-    return (
-        tokenizer(chat_text, add_special_tokens=False, return_tensors="pt")["input_ids"]
-        .squeeze()
-        .shape[0]
-    )
+    return tokenizer(chat_text, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze().shape[0]
 
 
 def run_agent(
@@ -338,9 +319,7 @@ def run_agent(
     Run the agent to completion for a batch of questions.
     """
     logger.info(f"Starting agent run with {len(questions)} questions")
-    logger.debug(
-        f"Max generations: {max_generations}, Max new tokens: {max_new_tokens}"
-    )
+    logger.debug(f"Max generations: {max_generations}, Max new tokens: {max_new_tokens}")
 
     chat_states = [get_initial_chat(q) for q in questions]
     # Add correct content to chat states if provided
@@ -359,13 +338,9 @@ def run_agent(
         chat_states = run_agent_generations(generate_fn, tokenizer, chat_states)
         chat_states = check_finished_chats(chat_states)
         chat_states = run_tool_calls(chat_states)
-        chat_states = check_exceeded_max_new_tokens(
-            chat_states, max_new_tokens, tokenizer
-        )
+        chat_states = check_exceeded_max_new_tokens(chat_states, max_new_tokens, tokenizer)
         finished_count = sum(1 for state in chat_states if state.get("finished"))
-        logger.info(
-            f"Finished {finished_count}/{len(chat_states)} chat states after step {i + 1}"
-        )
+        logger.info(f"Finished {finished_count}/{len(chat_states)} chat states after step {i + 1}")
 
     logger.info("Agent run completed")
 
@@ -387,23 +362,15 @@ def run_agent(
         assistant_response = convo_text[idx + len(marker) :]
         return prompt, assistant_response
 
-    str_chats = [
-        apply_chat_template(chat, tokenizer=tokenizer)["text"] for chat in chat_states
-    ]
+    str_chats = [apply_chat_template(chat, tokenizer=tokenizer)["text"] for chat in chat_states]
     prompt_toks, response_toks, response_masks = [], [], []
 
     logger.debug("Processing tokenization")
     for i, str_chat in enumerate(str_chats):
         prompt, response = split_prompt_assistant(str_chat)
-        prompt_toks.append(
-            tokenizer(prompt, add_special_tokens=False, return_tensors="pt")[
-                "input_ids"
-            ].squeeze()
-        )
+        prompt_toks.append(tokenizer(prompt, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze())
         response_toks.append(
-            tokenizer(response, add_special_tokens=False, return_tensors="pt")[
-                "input_ids"
-            ].squeeze()[:max_new_tokens]
+            tokenizer(response, add_special_tokens=False, return_tensors="pt")["input_ids"].squeeze()[:max_new_tokens]
         )
         mask = get_mask(str_chat, tokenizer)[len(prompt_toks[-1]) :][:max_new_tokens]
         response_masks.append(mask)
@@ -469,12 +436,8 @@ def check_student_answers(
     logger.info(f"Checking {len(questions)} student answers")
 
     if not (len(questions) == len(answers) == len(student_answers)):
-        logger.error(
-            "Mismatched lengths between questions, answers, and student answers"
-        )
-        raise ValueError(
-            "The number of questions, answers, and student answers must be equal."
-        )
+        logger.error("Mismatched lengths between questions, answers, and student answers")
+        raise ValueError("The number of questions, answers, and student answers must be equal.")
 
     prompts = []
     for question, answer, student_ans in zip(questions, answers, student_answers):
@@ -537,7 +500,7 @@ def check_student_answers(
             for i, (question, answer, student_ans, verifier_response) in enumerate(
                 zip(questions, answers, student_answers, responses_text)
             ):
-                file.write(f"\n❓ Question {i+1}:\n")
+                file.write(f"\n❓ Question {i + 1}:\n")
                 file.write("-" * 40 + "\n")
                 file.write(f"📋 Question: {question}\n")
                 file.write(f"✅ Correct Answer: {answer}\n")
@@ -548,11 +511,7 @@ def check_student_answers(
                 if isinstance(student_ans, dict) and "messages" in student_ans:
                     # Get messages from dict
                     messages = student_ans.get("messages", [])
-                    search_results = [
-                        msg.get("content", "")
-                        for msg in messages
-                        if msg.get("role") == "ipython"
-                    ]
+                    search_results = [msg.get("content", "") for msg in messages if msg.get("role") == "ipython"]
                     if search_results:
                         file.write("\n🔎 Search Results:\n")
                         for j, result in enumerate(search_results, 1):
@@ -561,7 +520,7 @@ def check_student_answers(
                 file.write("-" * 40 + "\n")
 
             file.write(
-                f"\n📊 Summary: {sum(results)}/{len(results)} answers correct ({sum(results)/len(results)*100:.2f}%)\n"
+                f"\n📊 Summary: {sum(results)}/{len(results)} answers correct ({sum(results) / len(results) * 100:.2f}%)\n"
             )
             file.write("=" * 80 + "\n\n")
 
@@ -572,18 +531,12 @@ def check_student_answers(
 def build_reward_correctness_fn(generate_fn, tokenizer, log_file=None):
     def reward_correctness(prompts, completions, **reward_kwargs):
         teacher_answers = reward_kwargs["answer"]
-        student_answers = [
-            completion["messages"][-1]["content"] for completion in completions
-        ]
+        student_answers = [completion["messages"][-1]["content"] for completion in completions]
 
         # Log non-exact matches
         for i, (student, teacher) in enumerate(zip(student_answers, teacher_answers)):
             if student.strip().lower() != teacher.strip().lower():
-                logger.warning(
-                    f"Non-exact match at index {i}:\n"
-                    f"Student: {student}\n"
-                    f"Teacher: {teacher}"
-                )
+                logger.warning(f"Non-exact match at index {i}:\nStudent: {student}\nTeacher: {teacher}")
 
         correct = check_student_answers(
             prompts,
@@ -595,12 +548,8 @@ def build_reward_correctness_fn(generate_fn, tokenizer, log_file=None):
         )
 
         # Log correctness metrics with length info
-        log_metric(
-            "rewards/correctness", np.mean(correct), reward_kwargs.get("step", 0)
-        )
-        log_metric(
-            "rewards/correctness_std", np.std(correct), reward_kwargs.get("step", 0)
-        )
+        log_metric("rewards/correctness", np.mean(correct), reward_kwargs.get("step", 0))
+        log_metric("rewards/correctness_std", np.std(correct), reward_kwargs.get("step", 0))
 
         # Log length metrics
         student_lengths = [len(ans.strip()) for ans in student_answers]
@@ -676,9 +625,7 @@ def reward_retry_behavior(completions: list[dict], **reward_kwargs) -> list[floa
 
             if json_count > 1:
                 has_multiple_json = True
-                logger.warning(
-                    f"Message contains {json_count} JSON objects, which exceeds the limit of 1"
-                )
+                logger.warning(f"Message contains {json_count} JSON objects, which exceeds the limit of 1")
                 break
 
         # Only reward if no message has multiple JSON objects
@@ -692,17 +639,13 @@ def reward_retry_behavior(completions: list[dict], **reward_kwargs) -> list[floa
             if total_json_objects > 4:
                 penalty = 0.1 * (total_json_objects - 4)
                 base_reward = max(0.2, base_reward - penalty)
-                logger.debug(
-                    f"Applied penalty for {total_json_objects} total JSON objects: {penalty}"
-                )
+                logger.debug(f"Applied penalty for {total_json_objects} total JSON objects: {penalty}")
 
             rewards.append(base_reward)
 
     # Log retry behavior metrics
     log_metric("rewards/retry_behavior", np.mean(rewards), reward_kwargs.get("step", 0))
-    log_metric(
-        "rewards/retry_behavior_std", np.std(rewards), reward_kwargs.get("step", 0)
-    )
+    log_metric("rewards/retry_behavior_std", np.std(rewards), reward_kwargs.get("step", 0))
     log_metric(
         "metrics/avg_json_per_msg",
         np.mean(
@@ -737,28 +680,22 @@ def reward_exact_match_chunk_query(prompts, completions, **reward_kwargs):
         raise ValueError("chunk_content must be provided in reward_kwargs")
 
     rewards = []
-    for i, (chat_state, correct_content) in enumerate(
-        zip(completions, correct_contents)
-    ):
+    for i, (chat_state, correct_content) in enumerate(zip(completions, correct_contents)):
         # Get all ipython messages (search results) from the chat
-        search_results = [
-            msg["content"] for msg in chat_state["messages"] if msg["role"] == "ipython"
-        ]
+        search_results = [msg["content"] for msg in chat_state["messages"] if msg["role"] == "ipython"]
         logger.debug(f"Found {len(search_results)} search results for prompt {i}")
 
         # Log ground truth chunk and searched chunks
         logger.info(f"📝 Ground Truth Chunk: {correct_content}")
         for j, result in enumerate(search_results):
-            logger.info(f"🔍 Searched Chunk {j+1}: {result}")
+            logger.info(f"🔍 Searched Chunk {j + 1}: {result}")
 
         # Check if any search hit the correct chunk content
         found_correct_chunk = False
         for result in search_results:
             if correct_content in result:
                 found_correct_chunk = True
-                logger.debug(
-                    f"Found correct chunk content in search results for prompt {i}"
-                )
+                logger.debug(f"Found correct chunk content in search results for prompt {i}")
                 break
 
         if not found_correct_chunk:
@@ -796,21 +733,13 @@ def reward_exact_match_chunk_query(prompts, completions, **reward_kwargs):
         "metrics/avg_search_results",
         np.mean(
             [
-                len(
-                    [
-                        msg["content"]
-                        for msg in chat_state["messages"]
-                        if msg["role"] == "ipython"
-                    ]
-                )
+                len([msg["content"] for msg in chat_state["messages"] if msg["role"] == "ipython"])
                 for chat_state in completions
             ]
         ),
         reward_kwargs.get("step", 0),
     )
-    log_metric(
-        "metrics/chunk_match_rate", np.mean(rewards), reward_kwargs.get("step", 0)
-    )
+    log_metric("metrics/chunk_match_rate", np.mean(rewards), reward_kwargs.get("step", 0))
 
     # Log detailed debugging info
     logger.info("Chunk Query Rewards Summary:")
@@ -862,10 +791,8 @@ def run_eval(generate_fn, verify_fn, tokenizer, output_file=None, debug_file=Non
                 f.write(f"Percentage correct: {percent_correct:.2f}%\n\n")
 
                 f.write("Individual results:\n")
-                for i, (q, r, resp) in enumerate(
-                    zip(questions, rewards, final_responses)
-                ):
-                    f.write(f"\nQ{i+1}: {q[:100]}...\n")
+                for i, (q, r, resp) in enumerate(zip(questions, rewards, final_responses)):
+                    f.write(f"\nQ{i + 1}: {q[:100]}...\n")
                     f.write(f"Correct: {'✓' if r else '✗'}\n")
                     f.write(f"Response: {resp[:150]}...\n")
                     f.write("-" * 40 + "\n")
@@ -879,9 +806,7 @@ def run_eval(generate_fn, verify_fn, tokenizer, output_file=None, debug_file=Non
             import json
 
             debug_data = []
-            for i, (q, r, resp, chat) in enumerate(
-                zip(questions, rewards, final_responses, full_chat_states)
-            ):
+            for i, (q, r, resp, chat) in enumerate(zip(questions, rewards, final_responses, full_chat_states)):
                 debug_data.append(
                     {
                         "question_id": i,

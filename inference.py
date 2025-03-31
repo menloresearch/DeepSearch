@@ -498,7 +498,7 @@ You are a helpful assistant with tool calling capabilities."""
         try:
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(f"{'=' * 80}\n")
-                f.write(f"DEEPSEARCH CHAT HISTORY\n")
+                f.write("DEEPSEARCH CHAT HISTORY\n")
                 f.write(f"Model: {MODEL_NAME}\n")
                 f.write(f"LoRA Path: {self.lora_path if self.lora_path else 'None'}\n")
                 f.write(f"Temperature: {self.temperature}\n")

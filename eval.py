@@ -170,9 +170,7 @@ def test_lora_functionality(model, tokenizer, lora_path):
 
     # Sample with base model
     logger.info("Generating with base model...")
-    sampling_params = get_sampling_params(
-        temperature=0.7
-    )  # Higher temp to make differences more obvious
+    sampling_params = get_sampling_params(temperature=0.7)  # Higher temp to make differences more obvious
     base_response = model.fast_generate(
         [formatted_prompt],
         sampling_params=sampling_params,
@@ -217,12 +215,8 @@ def test_lora_functionality(model, tokenizer, lora_path):
     logger.info("-" * 40)
 
     if are_identical:
-        logger.warning(
-            "\nWARNING: LoRA adapter does not seem to change the model's output"
-        )
-        logger.warning(
-            "This could indicate that the LoRA adapter is not being properly applied"
-        )
+        logger.warning("\nWARNING: LoRA adapter does not seem to change the model's output")
+        logger.warning("This could indicate that the LoRA adapter is not being properly applied")
     else:
         logger.info("\nLoRA adapter is working as expected (outputs are different)")
 
@@ -257,9 +251,7 @@ def evaluate_model(
     # Prioritize the directory passed from the shell script if available
     if trainer_dir and os.path.isdir(trainer_dir):
         trainer_output_dir = os.path.abspath(trainer_dir)
-        logger.info(
-            f"Using trainer directory passed from arguments: {trainer_output_dir}"
-        )
+        logger.info(f"Using trainer directory passed from arguments: {trainer_output_dir}")
     else:
         logger.warning(
             f"Trainer directory not provided or invalid: {trainer_dir}. Attempting to determine automatically."
@@ -274,9 +266,7 @@ def evaluate_model(
             # If a LoRA path exists (provided or found), get its parent's parent
             checkpoint_dir = os.path.dirname(os.path.abspath(temp_lora_path))
             trainer_output_dir = os.path.dirname(checkpoint_dir)
-            logger.info(
-                f"Determined trainer directory from LoRA path ({temp_lora_path}): {trainer_output_dir}"
-            )
+            logger.info(f"Determined trainer directory from LoRA path ({temp_lora_path}): {trainer_output_dir}")
         else:
             # If no LoRA path, default to current directory (should ideally not happen if called from eval.sh)
             trainer_output_dir = os.path.abspath(".")
@@ -290,22 +280,16 @@ def evaluate_model(
         detected_checkpoint = find_latest_checkpoint(search_dir=trainer_output_dir)
         if detected_checkpoint:
             lora_path = detected_checkpoint
-            logger.info(
-                f"Auto-detected latest checkpoint in {trainer_output_dir}: {lora_path}"
-            )
+            logger.info(f"Auto-detected latest checkpoint in {trainer_output_dir}: {lora_path}")
         else:
-            logger.warning(
-                f"No checkpoint found in {trainer_output_dir} for auto-detection. Evaluating base model."
-            )
+            logger.warning(f"No checkpoint found in {trainer_output_dir} for auto-detection. Evaluating base model.")
             lora_path = None
 
     model_type = "LoRA" if lora_path else "Base"
 
     logger.info(f"\n{'=' * 50}")
     logger.info(f"Starting evaluation of {model_type} model")
-    logger.info(
-        f"Trainer Output Directory: {trainer_output_dir}"
-    )  # Log the final directory
+    logger.info(f"Trainer Output Directory: {trainer_output_dir}")  # Log the final directory
     logger.info(f"{'=' * 50}")
 
     # --- Create eval_logs directory ---
@@ -319,18 +303,14 @@ def evaluate_model(
         # Fallback to current directory if creation fails
         eval_log_dir = os.path.abspath("./eval_logs")
         os.makedirs(eval_log_dir, exist_ok=True)
-        logger.warning(
-            f"Fell back to creating eval_logs in current directory: {eval_log_dir}"
-        )
+        logger.warning(f"Fell back to creating eval_logs in current directory: {eval_log_dir}")
 
     # Create file names based on model type
     model_prefix = "lora" if lora_path else "base"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Define all output file paths
-    eval_log_file = os.path.join(
-        eval_log_dir, f"{model_prefix}_model_eval_{timestamp}.log"
-    )
+    eval_log_file = os.path.join(eval_log_dir, f"{model_prefix}_model_eval_{timestamp}.log")
     output_file = os.path.join(eval_log_dir, f"{model_prefix}_model_results.txt")
     debug_file = os.path.join(eval_log_dir, f"{model_prefix}_model_results_debug.json")
 
@@ -343,12 +323,8 @@ def evaluate_model(
         if lora_path:
             lora_request = model.load_lora(lora_path)
             load_time = time.time() - start_time
-            logger.info(
-                f"LoRA adapter loaded in {load_time:.2f} seconds: {lora_request}"
-            )
-            responses = model.fast_generate(
-                inputs, sampling_params=sampling_params, lora_request=lora_request
-            )
+            logger.info(f"LoRA adapter loaded in {load_time:.2f} seconds: {lora_request}")
+            responses = model.fast_generate(inputs, sampling_params=sampling_params, lora_request=lora_request)
         else:
             # For base model, add additional logging
             logger.info("Generating with base model (no LoRA)")
@@ -373,9 +349,7 @@ def evaluate_model(
         return model.fast_generate(inputs, sampling_params=verifier_params)
 
     # Prepare the verification function
-    verify_fn = rl_helpers.build_reward_correctness_fn(
-        verifier_generate_fn, tokenizer, log_file=eval_log_file
-    )
+    verify_fn = rl_helpers.build_reward_correctness_fn(verifier_generate_fn, tokenizer, log_file=eval_log_file)
 
     # Get the dataset and prepare questions and answers
     train_dataset, test_dataset = rl_helpers.get_qa_dataset()
@@ -438,9 +412,7 @@ def evaluate_model(
         f.write(f"Results saved to: {output_file}\n")
         f.write(f"Debug data saved to: {debug_file}\n\n")
 
-    logger.info(
-        f"Evaluation completed. Results saved to {output_file} and {debug_file}"
-    )
+    logger.info(f"Evaluation completed. Results saved to {output_file} and {debug_file}")
 
     return results
 
@@ -463,9 +435,7 @@ def compare_models(lora_path, temperature=0.5, output_file=None, trainer_dir=Non
             lora_path = detected_checkpoint
             logger.info(f"Auto-detected latest checkpoint: {lora_path}")
         else:
-            logger.warning(
-                "No checkpoint found for auto-detection. Skipping comparison."
-            )
+            logger.warning("No checkpoint found for auto-detection. Skipping comparison.")
             return
 
     # Set up output directory in the checkpoint directory
@@ -560,9 +530,7 @@ if __name__ == "__main__":
         default="auto",
         help="Path to LoRA weights (use 'auto' for auto-detection)",
     )
-    parser.add_argument(
-        "--temperature", type=float, default=0.5, help="Sampling temperature"
-    )
+    parser.add_argument("--temperature", type=float, default=0.5, help="Sampling temperature")
     parser.add_argument(
         "--output_file",
         type=str,
@@ -609,24 +577,16 @@ if __name__ == "__main__":
                 update_log_path(eval_log_dir)
                 logger.info(f"Logs will be saved to both ./logs and {eval_log_dir}")
             except ImportError:
-                logger.info(
-                    "Config's update_log_path not available, using default logging"
-                )
+                logger.info("Config's update_log_path not available, using default logging")
 
     if trainer_dir:
         logger.info(f"Using trainer directory: {trainer_dir}")
-        logger.info(
-            f"All evaluation files will be stored in: {os.path.join(trainer_dir, 'eval_logs')}"
-        )
+        logger.info(f"All evaluation files will be stored in: {os.path.join(trainer_dir, 'eval_logs')}")
     else:
-        logger.warning(
-            "No trainer directory found, will attempt to determine during evaluation"
-        )
+        logger.warning("No trainer directory found, will attempt to determine during evaluation")
 
     logger.info(f"Starting model evaluation with temperature {args.temperature}")
-    results = compare_models(
-        args.lora_path, args.temperature, args.output_file, trainer_dir=trainer_dir
-    )
+    results = compare_models(args.lora_path, args.temperature, args.output_file, trainer_dir=trainer_dir)
     if results:
         logger.info("Evaluation completed successfully")
         logger.info(f"Final improvement: {results['improvement']:.4f}")

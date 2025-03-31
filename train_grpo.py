@@ -3,16 +3,6 @@ import os
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
 import src.UnslothGRPOTrainerTemp as UnslothGRPOTrainerTemp
-
-# Import reward functions
-from src.rl_helpers import (
-    build_reward_correctness_fn,
-    get_qa_dataset,
-    reward_exact_match_chunk_query,
-    reward_formatting,
-    reward_retry_behavior,
-    run_agent,
-)
 from src.config import (
     MODEL_CONFIG,
     MODEL_NAME,
@@ -22,6 +12,16 @@ from src.config import (
     init_training_dirs,
     logger,
     update_log_path,
+)
+
+# Import reward functions
+from src.rl_helpers import (
+    build_reward_correctness_fn,
+    get_qa_dataset,
+    reward_exact_match_chunk_query,
+    reward_formatting,
+    reward_retry_behavior,
+    run_agent,
 )
 
 # Initialize training directories
@@ -57,9 +57,7 @@ model = FastLanguageModel.get_peft_model(
 # Load datasets
 logger.info("Loading datasets")
 train_dataset, test_dataset = get_qa_dataset()
-logger.info(
-    f"Loaded {len(train_dataset)} training examples and {len(test_dataset)} test examples"
-)
+logger.info(f"Loaded {len(train_dataset)} training examples and {len(test_dataset)} test examples")
 
 # Setup training arguments
 logger.info("Setting up training arguments")

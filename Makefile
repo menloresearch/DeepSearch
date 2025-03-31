@@ -3,7 +3,7 @@
 # make sure to test the local checkout in scripts and not the pre-installed one
 export PYTHONPATH = src
 
-check_dirs := src
+check_dirs := . src notebooks scripts
 
 # Development dependencies
 install:
