@@ -120,3 +120,13 @@ if __name__ == "__main__":
     trainer.train()
     logger.info("Training completed")
     logger.info(f"Model saved to {OUTPUT_DIR}")
+
+    # Save model to FP16 format
+    logger.info("Saving model to FP16 format")
+    model_merged_dir = os.path.join(OUTPUT_DIR, "model_merged_16bit")
+    model.save_pretrained_merged(
+        model_merged_dir,
+        tokenizer,
+        save_method="merged_16bit",
+    )
+    logger.info(f"FP16 model saved to {model_merged_dir}")
