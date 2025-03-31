@@ -100,21 +100,21 @@ def _init_logging(env: str = "development") -> None:
 
     file_format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
 
-    # Add console logging
+    # Add console logging with DEBUG level
     logger.add(
         sys.stderr,
         format=console_format,
-        level="DEBUG" if env == "development" else "INFO",
+        level="DEBUG",  # Always use DEBUG level
         colorize=True,
         backtrace=True,
-        diagnose=env == "development",
+        diagnose=True,  # Always enable diagnostics
     )
 
-    # Add default file logging to ./logs directory
+    # Add default file logging to ./logs directory with DEBUG level
     logger.add(
         LOG_FOLDER / "app.log",
         format=file_format,
-        level="INFO",
+        level="DEBUG",  # Always use DEBUG level
         rotation="500 MB",
         retention="7 days",
         compression="zip",
