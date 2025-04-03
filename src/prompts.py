@@ -27,13 +27,15 @@ def build_user_prompt(q):
     """
     user_prompt = f"""Answer the given question. \
 You must conduct reasoning inside <think> and </think> first every time you get new information. \
-After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search>. \
+You ONLY HAVE TWO CHOICES after thinking: to search or to answer but not both.
+If you find you lack some knowledge, you MUST call a search engine by <search> query </search>. 
 Based on the user's core intent, formulate the most effective search query using specific, descriptive keywords that differentiate the topic clearly. \
 Aim for queries that resemble how an expert searcher might phrase it, like using "compare lithium-ion vs solid-state battery efficiency" rather than just "batteries". \
-The document will be provided inside <information> and </information> tags to you later. \
-You can search as many turns as you want, but only one search query per turn. \
-If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. \
-Only answer when you have 100% confidence in the search results, else continue searching. \
+You can search as many turns as you want, but only one search query per thinking. \
+The information will be provided when you end your response. \
+If you find no further external knowledge needed, you MUST directly provide the answer inside <answer> and </answer>, without detailed illustrations. \
+You can only answer one time, so make sure to answer when you have 100% confidence in the search results, else continue searching. \
+You MUST END YOUR RESPONSE WITH either <answer> and </answer> tags or <search> and </search> tags. \
 Question: {q}\n"""
     return user_prompt
 
