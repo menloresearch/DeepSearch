@@ -167,7 +167,7 @@ def run_eval(generate_fn, verify_fn, tokenizer, output_file=None, debug_file=Non
 
     # Create agent with appropriate adapter based on tokenizer
     tokenizer_name = tokenizer.name_or_path.lower()
-    if "deepseek-r1-distill" in tokenizer_name:
+    if "deepseek-ai/deepseek-r1-distill" in tokenizer_name:
         adapter = R1DistilTokenizerAdapter()
     elif "llama" in tokenizer_name:
         adapter = LlamaTokenizerAdapter()
