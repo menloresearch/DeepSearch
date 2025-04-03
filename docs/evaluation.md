@@ -4,6 +4,15 @@
     - 1. Better performance than the original one (by auto eval script)
     - 2. Better performance by real human eval/preference
 
+## Benmarks
+
+Just go with this 4 for now:
+
+- HotpotQA
+- 2wiki
+- Musique
+- Bamboogle
+
 ## Implementation Phases
 
 - [x] 1. Just take the eval function from the original repo (it simply uses accuracy (exact match)) and simple quick glance on the output quality.
