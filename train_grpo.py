@@ -21,7 +21,14 @@ from src.config import (
     logger,
     update_log_path,
 )
-from src.rewards import build_reward_correctness_fn, reward_em_chunk, reward_retry
+from src.rewards import (
+    build_reward_correctness_fn,
+    reward_em_chunk,
+    reward_format,
+    reward_retry,
+    reward_search_diversity,
+    reward_search_strategy,
+)
 from src.search_module import get_qa_dataset
 from src.tokenizer_adapter import LlamaTokenizerAdapter, QwenTokenizerAdapter, R1DistilTokenizerAdapter
 
@@ -121,6 +128,8 @@ trainer = UnslothGRPOTrainerTemp.UnslothGRPOTrainer(
         reward_format,
         reward_retry,
         reward_em_chunk,
+        reward_search_strategy,
+        reward_search_diversity,
     ],
     args=training_args,
     train_dataset=train_dataset,
