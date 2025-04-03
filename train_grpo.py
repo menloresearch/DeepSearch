@@ -23,7 +23,7 @@ from src.config import (
 )
 from src.rewards import build_reward_correctness_fn, reward_em_chunk, reward_retry
 from src.search_module import get_qa_dataset
-from src.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
+from src.tokenizer_adapter import LlamaTokenizerAdapter, QwenTokenizerAdapter, R1DistilTokenizerAdapter
 
 # Initialize training directories
 paths = init_training_dirs()
@@ -85,8 +85,10 @@ def agentic_generate(
         adapter = R1DistilTokenizerAdapter()
     elif "llama" in tokenizer_name:
         adapter = LlamaTokenizerAdapter()
+    elif "qwen" in tokenizer_name:
+        adapter = QwenTokenizerAdapter()
     else:
-        adapter = R1DistilTokenizerAdapter()
+        raise ValueError(f"Unsupported tokenizer: {tokenizer_name}")
 
     agent = Agent(adapter)
     return agent.run_agent(generate_fn, tokenizer, prompts, max_generations)
