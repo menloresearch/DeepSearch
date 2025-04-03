@@ -13,6 +13,7 @@ models/
 model/
 graveyard/
 eval_logs/
+downloaded_model/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
