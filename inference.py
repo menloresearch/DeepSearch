@@ -13,10 +13,12 @@ from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from vllm import SamplingParams
 
-from src.rl_helpers import (
+from src import (
+    apply_chat_template,
     build_user_prompt,
     extract_search_query,
     format_search_results,
+    get_system_prompt,
 )
 from src.search_module import load_vectorstore, search
 
@@ -68,26 +70,15 @@ class DeepSearchCLI:
         self.sampling_params = get_sampling_params(temperature)
         self.history = []
         self.search_history = []
-        self.system_prompt = (
-            system_prompt
-            or f"""Cutting Knowledge Date: December 2023
-Today Date: {datetime.now().strftime("%d %b %Y")}
-
-When you receive a tool call response, use the output to format an answer to the original user question.
-
-You are a helpful assistant with tool calling capabilities."""
-        )
+        self.system_prompt = system_prompt or get_system_prompt()
 
     def _run_agent_generation(self, chat_state: dict) -> dict:
         """Run a single generation step for the agent."""
-        formatted_prompt = self.tokenizer.apply_chat_template(
-            chat_state["messages"],
-            tokenize=False,
-            add_generation_prompt=True,
-        )
+        # Format the chat state using the same template as training
+        formatted_prompt = apply_chat_template(chat_state, tokenizer=self.tokenizer)["text"]
 
         start_time = time.time()
-        inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.model.device)
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt", add_special_tokens=False).to(self.model.device)
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=self.sampling_params.max_tokens,
@@ -118,7 +109,7 @@ You are a helpful assistant with tool calling capabilities."""
         Returns:
             The generated response after completing the conversation
         """
-        # Initialize chat state
+        # Initialize chat state with the same structure as training
         chat_state = {
             "messages": [
                 {"role": "system", "content": self.system_prompt},

@@ -15,6 +15,13 @@ from src.search_module import search
 from src.tokenizer_adapter import TokenizerAdapter
 
 
+def extract_search_query(text: str) -> str | None:
+    """Extract search query from text between <search> tags."""
+    pattern = re.compile(r"<search>(.*?)</search>", re.DOTALL)
+    matches = pattern.findall(text)
+    return matches[-1] if matches else None
+
+
 @dataclass
 class AgenticOutputs:
     """Outputs from running the agent on a batch of questions."""
@@ -41,12 +48,6 @@ class Agent:
                 {"role": "user", "content": build_user_prompt(question)},
             ]
         }
-
-    def extract_search_query(self, text: str) -> str | None:
-        """Extract search query from text between <search> tags."""
-        pattern = re.compile(r"<search>(.*?)</search>", re.DOTALL)
-        matches = pattern.findall(text)
-        return matches[-1] if matches else None
 
     def run_agent_generations(self, generate_fn, tokenizer, chat_states: list[dict]) -> list[dict]:
         """Run generation for chat states requiring assistant responses."""
@@ -109,7 +110,7 @@ class Agent:
             )
             try:
                 assistant_response = chat_state["messages"][-1]["content"]
-                search_query = self.extract_search_query(assistant_response)
+                search_query = extract_search_query(assistant_response)
                 if search_query:
                     logger.info(f"🔍 Search Query: {search_query}")
                     results = search(search_query, return_type=str, results=2)
