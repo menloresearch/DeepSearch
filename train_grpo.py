@@ -88,7 +88,7 @@ def agentic_generate(
 ):
     # Create agent with appropriate adapter based on tokenizer
     tokenizer_name = tokenizer.name_or_path.lower()
-    if "deepseek-r1-distill" in tokenizer_name:
+    if "deepseek-ai/deepseek-r1-distill" in tokenizer_name:
         adapter = R1DistilTokenizerAdapter()
     elif "llama" in tokenizer_name:
         adapter = LlamaTokenizerAdapter()
