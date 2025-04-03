@@ -4,7 +4,7 @@ Main package exports for RL helpers.
 
 from trl.trainer.grpo_trainer import apply_chat_template
 
-from src.agent import Agent
+from src.agent import Agent, extract_search_query
 from src.config import logger
 from src.evaluation import check_student_answers, run_eval, verify
 from src.prompts import build_user_prompt, format_search_results, get_system_prompt
@@ -27,6 +27,7 @@ __all__ = [
     "Agent",
     "LlamaTokenizerAdapter",
     "R1DistilTokenizerAdapter",
+    "extract_search_query",
     # Rewards
     "build_reward_correctness_fn",
     "reward_format",
