@@ -54,6 +54,8 @@ from trl.trainer.grpo_trainer import (
     wandb,
 )
 
+from src.config import logger
+
 torch_compile_options = {
     "epilogue_fusion": True,
     "max_autotune": False,
@@ -63,11 +65,11 @@ torch_compile_options = {
 }
 
 
-@torch.compile(
-    dynamic=True,
-    fullgraph=True,
-    options=torch_compile_options,
-)
+# @torch.compile(
+#     dynamic=True,
+#     fullgraph=True,
+#     options=torch_compile_options,
+# )
 def selective_log_softmax(logits, index):
     logits = logits.to(torch.float32)
     selected_logits = torch.gather(logits, dim=-1, index=index.unsqueeze(-1)).squeeze(-1)
@@ -82,6 +84,29 @@ def grpo_compute_loss(old_logits, new_logits, input_ids, mask, beta, advantages)
     # All Unsloth Zoo code licensed under LGPLv3
     old_logits = old_logits.to(torch.float32)
     new_logits = new_logits.to(torch.float32)
+
+    # Print FULL tensor contents
+    logger.debug("\n🔍 DETAILED TENSOR ANALYSIS:")
+    logger.debug("\n1️⃣ Input IDs:")
+    logger.debug(f"Shape: {input_ids.shape}")
+    # Use tensor.cpu().numpy() to safely print content
+
+    logger.debug(f"Type: {mask.dtype}")
+    logger.debug(f"Sum: {mask.sum().item()}")  # Use .item() to get Python scalar
+
+    logger.debug("\n3️⃣ Old Logits:")
+    logger.debug(f"Shape: {old_logits.shape}")
+    logger.debug(f"Type: {old_logits.dtype}")
+    logger.debug(f"Mean: {old_logits.mean().item():.4f}")
+
+    logger.debug("\n4️⃣ New Logits:")
+    logger.debug(f"Shape: {new_logits.shape}")
+    logger.debug(f"Type: {new_logits.dtype}")
+    logger.debug(f"Mean: {new_logits.mean().item():.4f}")
+
+    logger.debug("\n5️⃣ Advantages:")
+    logger.debug(f"Shape: {advantages.shape}")
+
     input_ids = input_ids.unsqueeze(-1)
 
     # x_i - logsumexp(x_i)
@@ -89,6 +114,10 @@ def grpo_compute_loss(old_logits, new_logits, input_ids, mask, beta, advantages)
     new_x = torch.gather(new_logits, dim=-1, index=input_ids).squeeze(-1)
     old = old_x - torch.logsumexp(old_logits, dim=-1)
     new = new_x - torch.logsumexp(new_logits, dim=-1)
+
+    logger.debug("\n6️⃣ After Gather & LogSumExp:")
+    logger.debug(f"old_x shape: {old_x.shape}, new_x shape: {new_x.shape}")
+    logger.debug(f"old shape: {old.shape}, new shape: {new.shape}")
 
     # Reverse KL
     kl_i = torch.exp(old - new) - (old - new) - 1.0
@@ -109,6 +138,13 @@ def grpo_compute_loss(old_logits, new_logits, input_ids, mask, beta, advantages)
     # See https://github.com/huggingface/trl/pull/2881
     # loss_per_reward = (loss_i * mask).sum(1) / n_mask_per_reward
     # loss = loss_per_reward.mean()
+
+    # Add print statements here for debugging
+    logger.debug(f"🚨 Debug: loss_i shape: {loss_i.shape}")
+    logger.debug(
+        f"🚨 Debug: mask shape: {mask.shape}"
+    )  # Note: Mask shape might change slightly due to float conversion
+
     loss = (loss_i * mask).sum() / mask.sum()
 
     # Get metrics as well which are folded
@@ -165,14 +201,7 @@ class UnslothEfficientGRPO(torch.autograd.Function):
         accumulated_completion_length = torch.zeros(1, device=device)
         accumulated_mean_kl = torch.zeros(1, device=device)
 
-        def accumulate_chunk(
-            new_hidden_states_j,
-            old_hidden_states_j,
-            input_ids_j,
-            mask_j,
-            advantages_j,
-            scaling,
-        ):
+        def accumulate_chunk(new_hidden_states_j, old_hidden_states_j, input_ids_j, mask_j, advantages_j, scaling):
             (
                 (chunk_grad_input,),
                 (
@@ -187,14 +216,7 @@ class UnslothEfficientGRPO(torch.autograd.Function):
                 compute_loss,
                 argnums=(0,),
                 has_aux=True,
-            )(
-                new_hidden_states_j,
-                old_hidden_states_j,
-                input_ids_j,
-                mask_j,
-                advantages_j,
-                scaling,
-            )
+            )(new_hidden_states_j, old_hidden_states_j, input_ids_j, mask_j, advantages_j, scaling)
             accumulated_loss.add_(unscaled_loss)
             accumulated_completion_length.add_(chunk_completion_length)
             accumulated_mean_kl.add_(chunk_mean_kl)
@@ -202,11 +224,11 @@ class UnslothEfficientGRPO(torch.autograd.Function):
 
         pass
 
-        accumulate_chunk = torch.compile(
-            accumulate_chunk,
-            fullgraph=True,
-            options=torch_compile_options,
-        )
+        # accumulate_chunk = torch.compile(
+        #     accumulate_chunk,
+        #     fullgraph=True,
+        #     options=torch_compile_options,
+        # )
 
         grad_inputs_chunks = torch.chunk(grad_inputs, chunks=n_chunks, dim=0)
         new_hidden_states = torch.chunk(_new_hidden_states, chunks=n_chunks, dim=0)
@@ -228,28 +250,14 @@ class UnslothEfficientGRPO(torch.autograd.Function):
             input_ids_j,
             mask_j,
             advantages_j,
-        ) in zip(
-            grad_inputs_chunks,
-            new_hidden_states,
-            old_hidden_states,
-            input_ids,
-            mask,
-            advantages,
-        ):
+        ) in zip(grad_inputs_chunks, new_hidden_states, old_hidden_states, input_ids, mask, advantages):
             mark_dynamic(new_hidden_states_j)
             mark_dynamic(old_hidden_states_j)
             mark_dynamic(input_ids_j)
             mark_dynamic(mask_j)
 
             grad_inputs_j.copy_(
-                accumulate_chunk(
-                    new_hidden_states_j,
-                    old_hidden_states_j,
-                    input_ids_j,
-                    mask_j,
-                    advantages_j,
-                    scaling,
-                )
+                accumulate_chunk(new_hidden_states_j, old_hidden_states_j, input_ids_j, mask_j, advantages_j, scaling)
             )
         pass
 
@@ -624,7 +632,7 @@ class UnslothGRPOConfig(GRPOConfig):
             save_strategy = "no"
         div = per_device_train_batch_size // num_generations
         if div * num_generations != per_device_train_batch_size:
-            print(
+            logger.debug(
                 "Unsloth: We now expect `per_device_train_batch_size` to be a multiple of `num_generations`.\nWe will change the batch size of "
                 + str(per_device_train_batch_size)
                 + " to the `num_generations` of "
@@ -971,11 +979,7 @@ class _UnslothGRPOTrainer(Trainer):
             self.sampling_params = SamplingParams(
                 temperature=args.temperature,
                 max_tokens=self.max_completion_length,
-                **getattr(
-                    getattr(args, "vllm_sampling_params", vLLMSamplingParams()),
-                    "_set_kwargs",
-                    {},
-                ),
+                **getattr(getattr(args, "vllm_sampling_params", vLLMSamplingParams()), "_set_kwargs", {}),
             )
         else:
             self.generation_config = GenerationConfig(
@@ -1038,9 +1042,7 @@ class _UnslothGRPOTrainer(Trainer):
         with torch.amp.autocast(device_type="cuda", dtype=self._autocast_dtype):
             # We add 1 to `logits_to_keep` because the last logits of the sequence is later excluded
             logits = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                logits_to_keep=logits_to_keep + 1,
+                input_ids=input_ids, attention_mask=attention_mask, logits_to_keep=logits_to_keep + 1
             ).logits
             logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
 
@@ -1056,25 +1058,31 @@ class _UnslothGRPOTrainer(Trainer):
         return None
 
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
+        logger.debug("\n🔍 DEBUG: Starting _prepare_inputs")
         device = self.accelerator.device
         prompts = [x["prompt"] for x in inputs]
         prompts_text = [maybe_apply_chat_template(example, self.processing_class)["prompt"] for example in inputs]
+        logger.debug("\n1️⃣ Before tokenization:")
+        logger.debug(f"Number of prompts: {len(prompts)}")
+        logger.debug(f"Sample prompt text length: {len(prompts_text[0]) if prompts_text else 0}")
+
         prompt_inputs = self.processing_class(
-            prompts_text,
-            return_tensors="pt",
-            padding=True,
-            padding_side="left",
-            add_special_tokens=False,
+            prompts_text, return_tensors="pt", padding=True, padding_side="left", add_special_tokens=False
         )
         prompt_inputs = super()._prepare_inputs(prompt_inputs)
-        prompt_ids, prompt_mask = (
-            prompt_inputs["input_ids"],
-            prompt_inputs["attention_mask"],
-        )
+        prompt_ids, prompt_mask = prompt_inputs["input_ids"], prompt_inputs["attention_mask"]
+
+        logger.debug("\n2️⃣ After initial tokenization:")
+        logger.debug(f"prompt_ids shape: {prompt_ids.shape}")
+        logger.debug(f"prompt_mask shape: {prompt_mask.shape}")
+        logger.debug(f"prompt_mask sum: {prompt_mask.sum().item()}")
 
         if self.max_prompt_length is not None:
             prompt_ids = prompt_ids[:, -self.max_prompt_length :]
             prompt_mask = prompt_mask[:, -self.max_prompt_length :]
+            logger.debug("\n3️⃣ After prompt length truncation:")
+            logger.debug(f"prompt_ids shape: {prompt_ids.shape}")
+            logger.debug(f"prompt_mask shape: {prompt_mask.shape}")
 
         # Generate completions using either vLLM or regular generation
         if self.args.use_vllm:
@@ -1086,7 +1094,7 @@ class _UnslothGRPOTrainer(Trainer):
             # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
             all_prompts_text = gather_object(prompts_text)
             if self.accelerator.is_main_process:
-                print(all_prompts_text)
+                logger.debug(all_prompts_text)
                 generate_fn = lambda prompts_text: self.llm.generate(
                     prompts_text,
                     sampling_params=self.sampling_params,
@@ -1104,6 +1112,11 @@ class _UnslothGRPOTrainer(Trainer):
                     prompt_inputs = agentic_outputs.prompt_tokens
                     completion_ids = agentic_outputs.response_tokens
                     completion_mask = agentic_outputs.response_masks
+                    for i in range(len(completion_ids)):
+                        logger.debug(f"prompt_inputs {i} len before padding: {len(prompt_inputs[i])}")
+                        logger.debug(f"completion_ids {i} len before padding: {len(completion_ids[i])}")
+                        logger.debug(f"completion_mask {i} len before padding: {len(completion_mask[i])}")
+
                     prompt_ids = pad(
                         prompt_inputs,
                         padding_value=self.processing_class.pad_token_id,
@@ -1114,6 +1127,12 @@ class _UnslothGRPOTrainer(Trainer):
                         padding_value=0,
                         padding_side="right",
                     ).to(device)
+
+                    for i in range(len(completion_ids)):
+                        logger.debug(f"prompt_inputs {i} len after padding: {len(prompt_inputs[i])}")
+                        logger.debug(f"prompt_ids {i} len after padding: {len(prompt_ids[i])}")
+                        logger.debug(f"completion_mask {i} len after padding: {len(completion_mask[i])}")
+
                 else:
                     outputs = generate_fn(all_prompts_text)
                     completion_ids = [out.token_ids for completions in outputs for out in completions.outputs]
@@ -1130,15 +1149,21 @@ class _UnslothGRPOTrainer(Trainer):
 
             # Pad the completions, and concatenate them with the prompts
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
+            logger.debug("\n4️⃣ Before completion padding:")
+            logger.debug(f"completion_ids shapes: {[ids.shape for ids in completion_ids]}")
+
             completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
+            logger.debug("\n5️⃣ After completion padding:")
+            logger.debug(f"completion_ids shape: {completion_ids.shape}")
+
             prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+            logger.debug("\n6️⃣ After concatenation:")
+            logger.debug(f"prompt_completion_ids shape: {prompt_completion_ids.shape}")
         else:
             # Regular generation path
             with unwrap_model_for_generation(self.model, self.accelerator) as unwrapped_model:
                 prompt_completion_ids = unwrapped_model.generate(
-                    prompt_ids,
-                    attention_mask=prompt_mask,
-                    generation_config=self.generation_config,
+                    prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config
                 )
 
             # Compute prompt length and extract completion ids
@@ -1148,11 +1173,52 @@ class _UnslothGRPOTrainer(Trainer):
 
         if not self.use_agentic_generate:
             # Mask everything after the first EOS token
+            logger.debug("\n🔍 Starting EOS token detection and masking:")
+            logger.debug(f"completion_ids shape: {completion_ids.shape}")
+            logger.debug(f"eos_token_id: {self.processing_class.eos_token_id}")
+
+            # Debug EOS detection
             is_eos = completion_ids == self.processing_class.eos_token_id
+            logger.debug("\n7️⃣ EOS Detection Details:")
+            logger.debug(f"is_eos shape: {is_eos.shape}")
+            logger.debug(f"Sample is_eos values (first sequence):\n{is_eos[0]}")
+            logger.debug(f"Any EOS tokens found: {is_eos.any().item()}")
+            logger.debug(f"EOS positions: {is_eos.nonzero()}")
+
+            # Debug EOS index tensor creation
             eos_idx = torch.full((is_eos.size(0),), is_eos.size(1), dtype=torch.long, device=device)
+            logger.debug("\n8️⃣ EOS Index Creation:")
+            logger.debug(f"eos_idx initial shape: {eos_idx.shape}")
+            logger.debug(f"eos_idx initial values: {eos_idx}")
+
+            # Debug the complex indexing operation
+            logger.debug("\n9️⃣ EOS Position Analysis:")
+            logger.debug(f"Sequences with EOS: {is_eos.any(dim=1).sum().item()}")
+            logger.debug(f"First EOS positions: {is_eos.int().argmax(dim=1)}")
+
             eos_idx[is_eos.any(dim=1)] = is_eos.int().argmax(dim=1)[is_eos.any(dim=1)]
+            logger.debug("\n🔟 After EOS Index Update:")
+            logger.debug(f"Updated eos_idx values: {eos_idx}")
+
+            # Debug sequence indices creation
             sequence_indices = torch.arange(is_eos.size(1), device=device).expand(is_eos.size(0), -1)
+            logger.debug("\n1️⃣1️⃣ Sequence Indices:")
+            logger.debug(f"sequence_indices shape: {sequence_indices.shape}")
+            logger.debug(f"Sample sequence_indices (first row):\n{sequence_indices[0]}")
+
+            # Debug final mask creation
             completion_mask = (sequence_indices <= eos_idx.unsqueeze(1)).int()
+            logger.debug("\n1️⃣2️⃣ Final Completion Mask:")
+            logger.debug(f"completion_mask shape: {completion_mask.shape}")
+            logger.debug(f"Sample mask (first sequence):\n{completion_mask[0]}")
+            logger.debug("Mask statistics:")
+            logger.debug(f"- Total 1s: {completion_mask.sum().item()}")
+            logger.debug(f"- Average sequence length: {completion_mask.sum(dim=1).float().mean().item():.2f}")
+
+            # Add a final validation check
+            logger.debug("\n7️⃣ Final Validation:")
+            logger.debug(f"Input shape: {completion_ids.shape}")
+            logger.debug(f"Mask shape: {completion_mask.shape}")
 
         # Concatenate prompt_mask with completion_mask for logit computation
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B*G, P+C)
@@ -1173,18 +1239,12 @@ class _UnslothGRPOTrainer(Trainer):
         ):
             if self.ref_model is not None:
                 ref_per_token_logps = self._get_per_token_logps(
-                    self.ref_model,
-                    prompt_completion_ids,
-                    attention_mask,
-                    logits_to_keep,
+                    self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep
                 )
             else:
                 with self.accelerator.unwrap_model(self.model, keep_fp32_wrapper=False).disable_adapter():
                     ref_per_token_logps = self._get_per_token_logps(
-                        self.model,
-                        prompt_completion_ids,
-                        attention_mask,
-                        logits_to_keep,
+                        self.model, prompt_completion_ids, attention_mask, logits_to_keep
                     )
 
         # Decode the generated completions
@@ -1211,11 +1271,7 @@ class _UnslothGRPOTrainer(Trainer):
                 else:
                     texts = [p + c for p, c in zip(prompts, completions)]
                 reward_inputs = reward_processing_class(
-                    texts,
-                    return_tensors="pt",
-                    padding=True,
-                    padding_side="right",
-                    add_special_tokens=False,
+                    texts, return_tensors="pt", padding=True, padding_side="right", add_special_tokens=False
                 )
                 reward_inputs = super()._prepare_inputs(reward_inputs)
                 with (
@@ -1273,7 +1329,7 @@ class _UnslothGRPOTrainer(Trainer):
 
         # Log the metrics
         reward_per_func = rewards_per_func.mean(0)
-        print("rewards_per_func:", reward_per_func)
+        logger.debug("rewards_per_func:", reward_per_func)
         for i, reward_func in enumerate(self.reward_funcs):
             if isinstance(reward_func, nn.Module):  # Module instead of PretrainedModel for compat with compiled models
                 reward_func_name = reward_func.config._name_or_path.split("/")[-1]
@@ -1318,10 +1374,7 @@ class _UnslothGRPOTrainer(Trainer):
         # Compute the per-token log probabilities for the model
 
         prompt_ids, prompt_mask = inputs["prompt_ids"], inputs["prompt_mask"]
-        completion_ids, completion_mask = (
-            inputs["completion_ids"],
-            inputs["completion_mask"],
-        )
+        completion_ids, completion_mask = inputs["completion_ids"], inputs["completion_mask"]
         input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
         bsz, qlen = input_ids.shape
         # attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
@@ -1369,13 +1422,7 @@ class _UnslothGRPOTrainer(Trainer):
         self._metrics["kl"].append(mean_kl.item())
         return loss
 
-    def prediction_step(
-        self,
-        model,
-        inputs,
-        prediction_loss_only,
-        ignore_keys: Optional[list[str]] = None,
-    ):
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys: Optional[list[str]] = None):
         inputs = self._prepare_inputs(inputs)
         with torch.no_grad():
             with self.compute_loss_context_manager():
@@ -1593,7 +1640,7 @@ class UnslothGRPOTrainer(_UnslothGRPOTrainer):
             from transformers import __version__ as transformers_version
 
             if Version(transformers_version) <= Version("4.45.2"):
-                print(
+                logger.debug(
                     "**** Unsloth: Please use our fixed gradient_accumulation_steps by updating transformers, TRL and Unsloth!\n"
                     "`pip install --upgrade --no-cache-dir --force-reinstall --no-deps unsloth transformers trl unsloth_zoo`"
                 )
