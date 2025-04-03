@@ -1,9 +1,9 @@
 .PHONY: style quality install tensorboard clean fix update-worklog
 
 # make sure to test the local checkout in scripts and not the pre-installed one
-export PYTHONPATH = src
+export PYTHONPATH = src 
 
-check_dirs := . src notebooks scripts
+check_dirs := . src notebooks scripts tests
 
 # Development dependencies
 install:
