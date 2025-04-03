@@ -7,7 +7,7 @@ import json
 import random
 
 from datasets import Dataset
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 
 from src.config import DATA_DIR, logger
 from src.embeddings import CustomHuggingFaceEmbeddings

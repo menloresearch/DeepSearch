@@ -19,6 +19,8 @@ LOG_FOLDER = PROJ_ROOT / "logs"
 # Model configuration
 # MODEL_NAME = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
+# MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+# MODEL_NAME = "unsloth/Qwen2-1.5B"  # Smoke test first
 device_id = 1 if os.environ.get("CUDA_VISIBLE_DEVICES") == "1" else torch.cuda.current_device()
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -100,21 +102,21 @@ def _init_logging(env: str = "development") -> None:
 
     file_format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
 
-    # Add console logging with DEBUG level
+    # Add console logging with INFO level (minimal terminal output)
     logger.add(
         sys.stderr,
         format=console_format,
-        level="DEBUG",  # Always use DEBUG level
+        level="INFO",  # "INFO",  # Changed from DEBUG to INFO for minimal terminal output
         colorize=True,
         backtrace=True,
-        diagnose=True,  # Always enable diagnostics
+        diagnose=True,
     )
 
-    # Add default file logging to ./logs directory with DEBUG level
+    # Add default file logging to ./logs directory with DEBUG level (full details)
     logger.add(
         LOG_FOLDER / "app.log",
         format=file_format,
-        level="DEBUG",  # Always use DEBUG level
+        level="DEBUG",  # Keep DEBUG level for full file logging
         rotation="500 MB",
         retention="7 days",
         compression="zip",
@@ -233,44 +235,6 @@ def setup_logger(module_name=None, create_dirs: bool = False):
     """
     logger.warning("setup_logger is deprecated. Import logger directly from config instead.")
     return logger
-
-
-# Tensorboard writer singleton
-_tensorboard_writer = None
-
-
-# Safe tensorboard logging function
-def log_metric(key, value, step=0):
-    """
-    Log a metric safely to tensorboard if writer is available.
-
-    Args:
-        key: Metric name
-        value: Metric value
-        step: Training step
-    """
-    global _tensorboard_writer
-
-    # Skip tensorboard logging if disabled in config
-    if TRAINING_CONFIG.get("report_to") != "tensorboard":
-        logger.debug(f"Tensorboard disabled. Metric: {key}={value} (step {step})")
-        return
-
-    # Get paths and initialize writer if needed
-    paths = get_paths(create_dirs=False)
-    if paths["tensorboard_dir"].exists():
-        # Only create writer once
-        if _tensorboard_writer is None:
-            from torch.utils.tensorboard.writer import SummaryWriter
-
-            _tensorboard_writer = SummaryWriter(paths["tensorboard_dir"])
-            logger.debug(f"Created tensorboard writer at {paths['tensorboard_dir']}")
-
-        # Add scalar using existing writer
-        _tensorboard_writer.add_scalar(key, value, step)
-        # No need to close the writer - it will be closed at process exit
-    else:
-        logger.debug(f"Tensorboard metric: {key}={value} (step {step})")
 
 
 # Initialize logging on module import

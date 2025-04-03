@@ -1,8 +1,16 @@
+"""
+Train a model using GRPO (Generative Reward-Penalized Optimization).
+"""
+
 import os
 
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
 import src.UnslothGRPOTrainerTemp as UnslothGRPOTrainerTemp
+
+# Import reward functions
+from src import build_reward_correctness_fn, get_qa_dataset, reward_em_chunk, reward_format, reward_retry
+from src.agent import Agent
 from src.config import (
     MODEL_CONFIG,
     MODEL_NAME,
@@ -13,16 +21,9 @@ from src.config import (
     logger,
     update_log_path,
 )
-
-# Import reward functions
-from src.rl_helpers import (
-    build_reward_correctness_fn,
-    get_qa_dataset,
-    reward_exact_match_chunk_query,
-    reward_formatting,
-    reward_retry_behavior,
-    run_agent,
-)
+from src.rewards import build_reward_correctness_fn, reward_em_chunk, reward_retry
+from src.search_module import get_qa_dataset
+from src.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
 
 # Initialize training directories
 paths = init_training_dirs()
@@ -78,7 +79,17 @@ def agentic_generate(
     generate_fn,
     max_generations: int = 10,
 ):
-    return run_agent(generate_fn, tokenizer, prompts, max_generations)
+    # Create agent with appropriate adapter based on tokenizer
+    tokenizer_name = tokenizer.name_or_path.lower()
+    if "deepseek-r1-distill" in tokenizer_name:
+        adapter = R1DistilTokenizerAdapter()
+    elif "llama" in tokenizer_name:
+        adapter = LlamaTokenizerAdapter()
+    else:
+        adapter = R1DistilTokenizerAdapter()
+
+    agent = Agent(adapter)
+    return agent.run_agent(generate_fn, tokenizer, prompts, max_generations)
 
 
 model.agentic_generate = agentic_generate
@@ -102,13 +113,12 @@ trainer = UnslothGRPOTrainerTemp.UnslothGRPOTrainer(
     processing_class=tokenizer,
     reward_funcs=[
         build_reward_correctness_fn(
-            verifier_generate_fn,
-            tokenizer,
-            log_file=os.path.join(paths["log_dir"], "qa_log.txt"),
+            vllm_generate_func=verifier_generate_fn,
+            tokenizer=tokenizer,
         ),
-        reward_formatting,
-        reward_retry_behavior,
-        reward_exact_match_chunk_query,
+        reward_format,
+        reward_retry,
+        reward_em_chunk,
     ],
     args=training_args,
     train_dataset=train_dataset,
