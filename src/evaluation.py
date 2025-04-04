@@ -148,7 +148,7 @@ def check_student_answers(
     return results
 
 
-def run_eval(generate_fn, verify_fn, tokenizer, output_file=None, debug_file=None):
+def run_eval(generate_fn, verify_fn, tokenizer, max_generations=20, output_file=None, debug_file=None):
     """
     Run evaluation on the test dataset and return results.
 
@@ -175,7 +175,7 @@ def run_eval(generate_fn, verify_fn, tokenizer, output_file=None, debug_file=Non
         adapter = R1DistilTokenizerAdapter()
 
     agent = Agent(adapter)
-    agentic_outputs = agent.run_agent(generate_fn, tokenizer, questions)
+    agentic_outputs = agent.run_agent(generate_fn, tokenizer, questions, max_generations)
     full_chat_states = agentic_outputs.full_chat_states
     final_responses = agentic_outputs.final_response_str
     rewards = verify_fn(questions, full_chat_states, answer=test_dataset["answer"])

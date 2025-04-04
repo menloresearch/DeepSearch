@@ -76,6 +76,7 @@ training_args = UnslothGRPOTrainerTemp.UnslothGRPOConfig(
     bf16=is_bfloat16_supported(),
     fp16=not is_bfloat16_supported(),
     output_dir=OUTPUT_DIR,
+    reward_weights=[4.0, 2.0, 1.0, 1.0, 1.0, 1.0],
     # report_to="tensorboard",  # ❓ Does't have billions of tensorboard files if set report to right here
 )
 
@@ -84,7 +85,7 @@ training_args = UnslothGRPOTrainerTemp.UnslothGRPOConfig(
 def agentic_generate(
     prompts: list,
     generate_fn,
-    max_generations: int = 10,
+    max_generations: int = 20,
 ):
     # Create agent with appropriate adapter based on tokenizer
     tokenizer_name = tokenizer.name_or_path.lower()
