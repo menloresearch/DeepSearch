@@ -54,7 +54,7 @@ from trl.trainer.grpo_trainer import (
     wandb,
 )
 
-from src.config import logger
+from config import logger
 
 torch_compile_options = {
     "epilogue_fusion": True,

@@ -21,7 +21,7 @@ from src import (
     get_system_prompt,
     run_eval,
 )
-from src.config import logger
+from config import logger
 
 
 def main():

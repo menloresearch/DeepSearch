@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
-from src.config import logger
+from config import logger
 
 
 class TokenizerAdapter(ABC):

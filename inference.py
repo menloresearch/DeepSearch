@@ -20,7 +20,7 @@ from src import (
     format_search_results,
     get_system_prompt,
 )
-from src.search_module import load_vectorstore, search
+from src.deepsearch.search_module import load_vectorstore, search
 
 
 def setup_model_and_tokenizer(model_path: str):

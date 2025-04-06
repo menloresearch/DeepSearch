@@ -28,8 +28,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_community.vectorstores import FAISS
 
-from src.config import DATA_DIR, logger
-from src.embeddings import CustomHuggingFaceEmbeddings
+from config import DATA_DIR, logger
+from src.deepsearch.embeddings import CustomHuggingFaceEmbeddings
 
 # Load your markdown file (adjust the path as needed)
 loader = UnstructuredMarkdownLoader("./data/mission_report.md")

@@ -4,18 +4,18 @@ Main package exports for RL helpers.
 
 from trl.trainer.grpo_trainer import apply_chat_template
 
-from src.agent import Agent, extract_search_query
-from src.config import logger
-from src.evaluation import check_student_answers, run_eval, verify
-from src.prompts import build_user_prompt, format_search_results, get_system_prompt
-from src.rewards import (
+from config import logger
+from src.deepsearch.agent import Agent, extract_search_query
+from src.deepsearch.evaluation import check_student_answers, run_eval, verify
+from src.deepsearch.prompts import build_user_prompt, format_search_results, get_system_prompt
+from src.deepsearch.rewards import (
     build_reward_correctness_fn,
     reward_em_chunk,
     reward_format,
     reward_retry,
 )
-from src.search_module import get_qa_dataset, search
-from src.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
+from src.deepsearch.search_module import get_qa_dataset, search
+from src.deepsearch.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
 
 __all__ = [
     # Prompts

@@ -9,10 +9,10 @@ from dataclasses import dataclass
 import torch
 from trl.trainer.grpo_trainer import apply_chat_template
 
-from src.config import logger
-from src.prompts import build_user_prompt, get_system_prompt
-from src.search_module import search
-from src.tokenizer_adapter import TokenizerAdapter
+from config import logger
+from src.deepsearch.prompts import build_user_prompt, get_system_prompt
+from src.deepsearch.search_module import search
+from src.deepsearch.tokenizer_adapter import TokenizerAdapter
 
 
 def extract_search_query(text: str) -> str | None:

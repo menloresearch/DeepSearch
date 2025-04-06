@@ -5,8 +5,8 @@ Test module for tokenizer adapters.
 import torch
 from transformers import AutoTokenizer, LlamaTokenizerFast
 
-from src.config import logger
-from src.tokenizer_adapter import LlamaTokenizerAdapter, QwenTokenizerAdapter, R1DistilTokenizerAdapter
+from config import logger
+from src.deepsearch.tokenizer_adapter import LlamaTokenizerAdapter, QwenTokenizerAdapter, R1DistilTokenizerAdapter
 
 # Test conversation used across all tests
 TEST_CHAT = [

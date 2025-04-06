@@ -21,7 +21,7 @@ from src import (
     get_system_prompt,
     run_eval,
 )
-from src.config import MODEL_NAME, logger
+from config import MODEL_NAME, logger
 
 
 def get_model_config():

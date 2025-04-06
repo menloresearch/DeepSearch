@@ -12,7 +12,7 @@ from vllm import SamplingParams
 load_dotenv(override=True)
 
 # Project paths
-PROJ_ROOT = Path(__file__).resolve().parent.parent
+PROJ_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJ_ROOT / "data"
 LOG_FOLDER = PROJ_ROOT / "logs"
 
@@ -55,7 +55,7 @@ TRAINING_CONFIG = {
     "logging_steps": 1,
     "per_device_train_batch_size": 8,
     "gradient_accumulation_steps": 1,  # Increase to 4 for smoother training
-    "num_generations": 8,  # Decrease if out of memory
+    "num_generations": 6,  # Decrease if out of memory
     "max_prompt_length": 1024,
     "max_completion_length": 1024,
     "max_steps": 101,
@@ -244,3 +244,7 @@ _init_logging(env=env)
 # Log project root on import
 logger.info(f"Project root path: {PROJ_ROOT}")
 logger.debug(f"Running in {env} environment")
+
+
+if __name__ == "__main__":
+    print(PROJ_ROOT)

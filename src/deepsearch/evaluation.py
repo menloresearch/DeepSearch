@@ -5,10 +5,10 @@ Evaluation utilities for RL training.
 import inspect
 from datetime import datetime
 
-from src.agent import Agent
-from src.config import logger
-from src.search_module import get_qa_dataset
-from src.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
+from src.deepsearch.agent import Agent
+from config import logger
+from src.deepsearch.search_module import get_qa_dataset
+from src.deepsearch.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
 
 
 async def verify(student_answer: str, question: str, answer: str) -> bool:
