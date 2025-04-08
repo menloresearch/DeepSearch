@@ -2,8 +2,8 @@
 
 from transformers import LlamaTokenizerFast
 
-from src.deepsearch.agent import Agent
-from src.deepsearch.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
+from src.agent import Agent
+from src.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
 
 
 def mock_generate_fn(prompts):

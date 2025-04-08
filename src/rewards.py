@@ -10,7 +10,7 @@ from difflib import SequenceMatcher
 import numpy as np
 
 from config import LOG_FOLDER, logger
-from src.deepsearch.evaluation import check_student_answers
+from src.evaluation import check_student_answers
 
 
 def build_reward_correctness_fn(

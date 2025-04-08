@@ -16,7 +16,7 @@ sys.path.append(str(project_root))
 
 # Import our search module and config
 from config import DATA_DIR, logger
-from src.deepsearch.search_module import get_question_answer, get_question_count, search
+from src.search_module import get_question_answer, get_question_count, search
 
 # TODO: Import verify function and router from appropriate module
 # TODO: Consider moving verify function to search_module.py for better organization

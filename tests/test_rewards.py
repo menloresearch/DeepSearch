@@ -4,7 +4,7 @@ Test cases for reward functions in rewards.py
 
 import pytest
 
-from src.deepsearch.rewards import (
+from src.rewards import (
     build_reward_correctness_fn,
     reward_em_chunk,
     reward_format,

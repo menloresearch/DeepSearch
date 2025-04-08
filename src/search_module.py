@@ -10,7 +10,7 @@ from datasets import Dataset
 from langchain_community.vectorstores import FAISS
 
 from config import DATA_DIR, logger
-from src.deepsearch.embeddings import CustomHuggingFaceEmbeddings
+from src.embeddings import CustomHuggingFaceEmbeddings
 
 
 # Load pre-saved vectorstore
