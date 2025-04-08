@@ -15,6 +15,8 @@ graveyard/
 eval_logs/
 downloaded_model/
 logs/
+*.code-workspace
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

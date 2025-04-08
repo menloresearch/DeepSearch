@@ -1,0 +1,38 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "src"
+version = "0.0.1"
+description = "A short description of the project."
+authors = [
+  { name = "Your name (or your organization/company/team)" },
+]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+requires-python = "~=3.11.0"
+
+dependencies = [
+    "datasets",
+    "faiss-cpu",
+    "langchain",
+    "langchain-community",
+    "Markdown",
+    "tokenizers",
+    "unsloth==2025.2.14",
+    "unsloth_zoo==2025.2.7",
+    "unstructured",
+    "vllm==0.7.2",
+    "transformers==4.49.0",
+    "ipykernel",
+    "python-dotenv",
+    "loguru",
+    "gradio",
+    "tensorboard",
+    "pytest",
+    "wandb"
+]
