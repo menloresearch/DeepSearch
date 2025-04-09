@@ -14,7 +14,17 @@ load_dotenv(override=True)
 # Project paths
 PROJ_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJ_ROOT / "data"
+MODEL_DIR = PROJ_ROOT / "models"
 LOG_FOLDER = PROJ_ROOT / "logs"
+
+# Evaluations
+RETRIEVER_MODEL_REPO_ID = "intfloat/e5-base-v2"
+RETRIEVER_MODEL_DIR = MODEL_DIR / "retriever"
+RETRIEVER_SERVER_PORT = 8001
+GENERATOR_MODEL_REPO_ID = "janhq/250404-llama-3.2-3b-instruct-grpo-03-s250"
+GENERATOR_MODEL_DIR = MODEL_DIR / "generator"
+GENERATOR_SERVER_PORT = 8002
+
 
 # Model configuration
 # MODEL_NAME = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"

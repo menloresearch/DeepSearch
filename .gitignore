@@ -17,6 +17,7 @@ downloaded_model/
 logs/
 *.code-workspace
 data/
+.gradio/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
