@@ -23,8 +23,8 @@ dependencies = [
     "langchain-community",
     "Markdown",
     "tokenizers",
-    "unsloth==2025.2.14",
-    "unsloth_zoo==2025.2.7",
+    "unsloth",
+    "unsloth_zoo",
     "unstructured",
     "vllm==0.7.2",
     "transformers==4.49.0",
@@ -34,5 +34,7 @@ dependencies = [
     "gradio",
     "tensorboard",
     "pytest",
-    "wandb"
+    "wandb",
+    "requests>=2.31.0",
+    "tqdm>=4.66.1"
 ]
