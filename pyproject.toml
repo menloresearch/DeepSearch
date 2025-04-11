@@ -39,4 +39,5 @@ dependencies = [
     "tqdm>=4.66.1",
     "tavily-python",
     "sglang[all]>=0.4.5",
+    "gdown",
 ]

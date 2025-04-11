@@ -3,7 +3,7 @@ from langchain.embeddings.base import Embeddings
 from transformers import AutoModel, AutoTokenizer
 
 # Set a default model here
-DEFAULT_MODEL_NAME = "avsolatorio/NoInstruct-small-Embedding-v0"
+DEFAULT_MODEL_NAME = "intfloat/e5-base-v2"  # Changed model name
 
 
 class CustomHuggingFaceEmbeddings(Embeddings):
