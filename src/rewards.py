@@ -347,7 +347,7 @@ def reward_retry(prompts: list, completions: list, **reward_kwargs) -> list:
 
 
 def reward_em_chunk(prompts: list, completions: list, **reward_kwargs) -> list:
-    """Reward function checks if model's search results contain all necessary supporting paragraphs.
+    """Reward function checks if model's search results contain the LAST necessary supporting paragraph.
 
     Args:
         prompts: List of input prompts
@@ -357,7 +357,7 @@ def reward_em_chunk(prompts: list, completions: list, **reward_kwargs) -> list:
                                      Each inner list corresponds to a completion.
 
     Returns:
-        list: List of rewards (1.0 if all paragraphs found, 0.0 otherwise)
+        list: List of rewards (1.0 if the LAST paragraph is found, 0.0 otherwise)
 
     Raises:
         ValueError: If supporting_paragraphs is not provided or invalid.
@@ -376,7 +376,7 @@ def reward_em_chunk(prompts: list, completions: list, **reward_kwargs) -> list:
         raise ValueError("Length of supporting_paragraphs must match length of completions")
 
     rewards = []
-    all_found_statuses = []  # Track found status for each paragraph
+    all_found_statuses = []  # Track found status for the last paragraph
 
     for i, (completion, required_paragraphs) in enumerate(zip(completions, all_supporting_paragraphs)):
         if not isinstance(required_paragraphs, list):
@@ -384,8 +384,19 @@ def reward_em_chunk(prompts: list, completions: list, **reward_kwargs) -> list:
                 f"supporting_paragraphs for completion {i} is not a list, skipping. Got: {type(required_paragraphs)}"
             )
             rewards.append(0.0)
-            all_found_statuses.append({p: False for p in required_paragraphs or []})  # Handle if None/empty
+            # Still log status for all potential paragraphs for consistency, even if we only check the last
+            all_found_statuses.append({p: False for p in required_paragraphs or []})
             continue
+
+        # Check if the required_paragraphs list is empty - should ideally not happen but good practice
+        if not required_paragraphs:
+            logger.warning(f"Empty required_paragraphs list for completion {i}, assigning 0.0 reward.")
+            rewards.append(0.0)
+            all_found_statuses.append({})
+            continue
+
+        # Get the last required paragraph
+        last_required_paragraph = required_paragraphs[-1]
 
         # Get all content from messages starting with <information> (from any role)
         search_results_content = [
@@ -398,32 +409,30 @@ def reward_em_chunk(prompts: list, completions: list, **reward_kwargs) -> list:
         # Combine all found information into a single text block for easier searching
         combined_information = "\n".join(search_results_content)
 
-        # Check if *all* required paragraphs are present in the combined information
-        found_status = {p: (p in combined_information) for p in required_paragraphs}
-        all_paragraphs_found = all(found_status.values())
+        # Check if the LAST required paragraph is present in the combined information
+        last_paragraph_found = last_required_paragraph in combined_information
 
-        if not all_paragraphs_found:
-            missing_paragraphs = [p for p, found in found_status.items() if not found]
+        if not last_paragraph_found:
             logger.debug(
-                f"Failed to find all required paragraphs for prompt {i}.\n"
-                f"Required: {len(required_paragraphs)}, Found: {len(required_paragraphs) - len(missing_paragraphs)}\n"
-                f"Missing paragraphs: {[p[:100] + '...' for p in missing_paragraphs]}\n"
+                f"Failed to find the required LAST paragraph for prompt {i}.\n"
+                f"Required last paragraph: {last_required_paragraph[:100] + '...'}\n"
                 f"Searched in: {combined_information[:200] + '...'}"
             )
 
-        reward = 1.0 if all_paragraphs_found else 0.0
+        reward = 1.0 if last_paragraph_found else 0.0
         rewards.append(reward)
-        all_found_statuses.append(found_status)
-        logger.debug(f"Reward for prompt {i}: {reward}")
+        # Log the found status specifically for the last paragraph
+        all_found_statuses.append({last_required_paragraph: last_paragraph_found})
+        logger.debug(f"Reward for prompt {i} (based on last paragraph): {reward}")
 
     # Log chat state
     log_chat_state(
         prompts=prompts,
         completions=completions,
         rewards=rewards,
-        reward_type="em_chunk",
+        reward_type="em_chunk_last",  # Changed type to reflect new logic
         supporting_paragraphs=all_supporting_paragraphs,
-        found_paragraph_statuses=all_found_statuses,  # Log which paragraphs were found
+        found_last_paragraph_statuses=all_found_statuses,  # Log which last paragraphs were found
     )
 
     return rewards
