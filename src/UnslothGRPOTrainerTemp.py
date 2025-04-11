@@ -571,7 +571,7 @@ class UnslothGRPOConfig(GRPOConfig):
         include_inputs_for_metrics=False,
         eval_do_concat_batches=True,
         fp16_backend="auto",
-        evaluation_strategy=None,
+        # evaluation_strategy=None,
         push_to_hub_model_id=None,
         push_to_hub_organization=None,
         push_to_hub_token=None,
@@ -744,7 +744,7 @@ class UnslothGRPOConfig(GRPOConfig):
             include_inputs_for_metrics=include_inputs_for_metrics,
             eval_do_concat_batches=eval_do_concat_batches,
             fp16_backend=fp16_backend,
-            evaluation_strategy=evaluation_strategy,
+            # evaluation_strategy=evaluation_strategy,
             push_to_hub_model_id=push_to_hub_model_id,
             push_to_hub_organization=push_to_hub_organization,
             push_to_hub_token=push_to_hub_token,
@@ -1337,6 +1337,8 @@ class _UnslothGRPOTrainer(Trainer):
 
         self._metrics["reward"].append(rewards.mean().item())
         self._metrics["reward_std"].append(std_grouped_rewards.mean().item())
+        self._metrics["advantages_mean"].append(advantages.mean().item())
+        self._metrics["advantages_std"].append(advantages.std().item())
 
         if (
             self.log_completions
@@ -1356,6 +1358,10 @@ class _UnslothGRPOTrainer(Trainer):
 
             if wandb.run is not None and self.accelerator.is_main_process:
                 wandb.log({"completions": wandb.Table(dataframe=df)})
+
+        # Log prompt length
+        prompt_length = prompt_mask.sum(dim=1).float().mean().item()
+        self._metrics["prompt_length"].append(prompt_length)
 
         return {
             "prompt_ids": prompt_ids,

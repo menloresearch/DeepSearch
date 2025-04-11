@@ -12,6 +12,8 @@ from langchain_community.vectorstores import FAISS
 from config import DATA_DIR, logger
 from src.embeddings import CustomHuggingFaceEmbeddings
 
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
+
 
 # Load pre-saved vectorstore
 def load_vectorstore():
@@ -19,8 +21,8 @@ def load_vectorstore():
     try:
         embeddings = CustomHuggingFaceEmbeddings()
         # Load the FAISS index from the data directory
-        logger.info(f"Loading FAISS index from: {DATA_DIR}")
-        vectorstore = FAISS.load_local(str(DATA_DIR), embeddings, allow_dangerous_deserialization=True)
+        logger.info(f"Loading FAISS index from: {PROCESSED_DATA_DIR}")
+        vectorstore = FAISS.load_local(str(PROCESSED_DATA_DIR), embeddings, allow_dangerous_deserialization=True)
         logger.info("Successfully loaded FAISS index")
         return vectorstore
     except Exception as e:
@@ -75,12 +77,12 @@ def search(query: str, return_type=str, results: int = 5):
 def load_qa_data():
     """Load the pre-generated questions"""
     try:
-        questions_path = DATA_DIR / "questions.json"
+        questions_path = PROCESSED_DATA_DIR / "questions.jsonl"
         logger.info(f"Loading questions from: {questions_path}")
 
         # Load the questions
         with open(questions_path, "r") as f:
-            questions = json.load(f)
+            questions = [json.loads(line) for line in f]
 
         logger.info(f"Successfully loaded {len(questions)} questions")
         return questions
@@ -142,7 +144,7 @@ def get_question_count() -> int:
     return len(questions)
 
 
-def get_qa_dataset(randomize: bool = False) -> tuple:
+def get_qa_dataset(randomize: bool = False, test_size: float = 0.1, seed: int = 42) -> tuple:
     """
     Return a HuggingFace Dataset containing question and answer pairs.
 
@@ -150,20 +152,45 @@ def get_qa_dataset(randomize: bool = False) -> tuple:
     Each element in the dataset is a dictionary that includes at least:
       - "question": The question text.
       - "answer": The corresponding answer text.
+      - "supporting_paragraphs": The supporting paragraphs for the question.
     Additional keys present in the original questions data will also be included.
 
+    Args:
+        randomize: Whether to shuffle the dataset
+        test_size: Proportion of the dataset to include in the test split (0 for train-only)
+        seed: Random seed for reproducibility
+
     Returns:
-        A HuggingFace Dataset object.
+        A tuple of (train_dataset, test_dataset) HuggingFace Dataset objects.
+        If test_size=0, test_dataset will be empty. If test_size=1, train_dataset will be empty.
     """
     if questions is None:
         raise ValueError("Questions not loaded. Please ensure questions.json exists.")
 
     qa_dataset = Dataset.from_list(questions)
     if randomize:
-        qa_dataset = qa_dataset.shuffle(seed=42)
-    train_dataset = qa_dataset.train_test_split(test_size=0.1, seed=42)["train"]
-    test_dataset = qa_dataset.train_test_split(test_size=0.1, seed=42)["test"]
-    # rename the column of the dataset from "question" to "input"
-    train_dataset = train_dataset.rename_column("question", "prompt")
-    test_dataset = test_dataset.rename_column("question", "prompt")
-    return train_dataset, test_dataset
+        qa_dataset = qa_dataset.shuffle(seed=seed)
+
+    # Create empty dataset for when train or test size is 0
+    empty_dataset = Dataset.from_list([])
+
+    if test_size <= 0:
+        # Only train dataset, empty test dataset
+        train_dataset = qa_dataset
+        train_dataset = train_dataset.rename_column("question", "prompt")
+        return train_dataset, empty_dataset
+    elif test_size >= 1:
+        # Only test dataset, empty train dataset
+        test_dataset = qa_dataset
+        test_dataset = test_dataset.rename_column("question", "prompt")
+        return empty_dataset, test_dataset
+    else:
+        # Both train and test datasets
+        split = qa_dataset.train_test_split(test_size=test_size, seed=seed)
+        train_dataset = split["train"]
+        test_dataset = split["test"]
+
+        # rename the column of the dataset from "question" to "input"
+        train_dataset = train_dataset.rename_column("question", "prompt")
+        test_dataset = test_dataset.rename_column("question", "prompt")
+        return train_dataset, test_dataset

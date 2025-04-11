@@ -11,6 +11,7 @@ from trl.trainer.grpo_trainer import apply_chat_template
 
 from config import logger
 from src.prompts import build_user_prompt, get_system_prompt
+# TODO: refactor this, it's terrible
 from src.search_module import search
 from src.tokenizer_adapter import TokenizerAdapter
 
@@ -119,7 +120,7 @@ class Agent:
                 search_query = extract_search_query(assistant_response)
                 if search_query:
                     logger.info(f"🔍 Search Query: {search_query}")
-                    results = self.search_fn(search_query, return_type=str, results=2)
+                    results = self.search_fn(search_query)
                     formatted_results = f"<information>{results}</information>"
                     logger.info(f"ℹ️ Information: {formatted_results}")
 

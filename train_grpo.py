@@ -7,10 +7,6 @@ import os
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
 import src.UnslothGRPOTrainerTemp as UnslothGRPOTrainerTemp
-
-# Import reward functions
-from src import build_reward_correctness_fn, get_qa_dataset, reward_em_chunk, reward_format, reward_retry
-from src.agent import Agent
 from config import (
     MODEL_CONFIG,
     MODEL_NAME,
@@ -21,6 +17,10 @@ from config import (
     logger,
     update_log_path,
 )
+
+# Import reward functions
+from src import build_reward_correctness_fn, get_qa_dataset, reward_em_chunk, reward_format, reward_retry
+from src.agent import Agent
 from src.rewards import (
     build_reward_correctness_fn,
     reward_em_chunk,
@@ -64,7 +64,7 @@ model = FastLanguageModel.get_peft_model(
 
 # Load datasets
 logger.info("Loading datasets")
-train_dataset, test_dataset = get_qa_dataset()
+train_dataset, test_dataset = get_qa_dataset(randomize=True, test_size=0, seed=42)
 logger.info(f"Loaded {len(train_dataset)} training examples and {len(test_dataset)} test examples")
 
 # Setup training arguments
@@ -76,8 +76,7 @@ training_args = UnslothGRPOTrainerTemp.UnslothGRPOConfig(
     bf16=is_bfloat16_supported(),
     fp16=not is_bfloat16_supported(),
     output_dir=OUTPUT_DIR,
-    reward_weights=[4.0, 2.0, 1.0, 1.0, 1.0, 1.0],
-    # report_to="tensorboard",  # ❓ Does't have billions of tensorboard files if set report to right here
+    reward_weights=[2.0, 1.0, 1.0, 1.0],
 )
 
 
@@ -85,7 +84,7 @@ training_args = UnslothGRPOTrainerTemp.UnslothGRPOConfig(
 def agentic_generate(
     prompts: list,
     generate_fn,
-    max_generations: int = 20,
+    max_generations: int = 32,
 ):
     # Create agent with appropriate adapter based on tokenizer
     tokenizer_name = tokenizer.name_or_path.lower()
@@ -129,8 +128,8 @@ trainer = UnslothGRPOTrainerTemp.UnslothGRPOTrainer(
         reward_format,
         reward_retry,
         reward_em_chunk,
-        reward_search_strategy,
-        reward_search_diversity,
+        # reward_search_strategy,
+        # reward_search_diversity,
     ],
     args=training_args,
     train_dataset=train_dataset,
@@ -142,13 +141,3 @@ if __name__ == "__main__":
     trainer.train()
     logger.info("Training completed")
     logger.info(f"Model saved to {OUTPUT_DIR}")
-
-    # Save model to FP16 format
-    logger.info("Saving model to FP16 format")
-    model_merged_dir = os.path.join(OUTPUT_DIR, "model_merged_16bit")
-    model.save_pretrained_merged(
-        model_merged_dir,
-        tokenizer,
-        save_method="merged_16bit",
-    )
-    logger.info(f"FP16 model saved to {model_merged_dir}")
