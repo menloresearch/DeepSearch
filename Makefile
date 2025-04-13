@@ -1,4 +1,4 @@
-.PHONY: style quality install tensorboard clean fix update-worklog test data download-musique prepare-musique-jsonl extract-musique-paragraphs build-musique-index prepare-musique-index prepare-all-musique check-data
+.PHONY: style quality install tensorboard clean fix update-worklog test data download-musique prepare-musique-jsonl extract-musique-paragraphs build-musique-index prepare-musique-index prepare-all-musique check-data prepare-dev-data
 
 # make sure to test the local checkout in scripts and not the pre-installed one
 export PYTHONPATH = src 
@@ -70,9 +70,15 @@ prepare-all-musique: data prepare-musique-index
 	@echo "All Musique data and index preparation complete."
 
 # Check Data
-check-data: prepare-all-musique
+check-data: prepare-all-musique prepare-dev-data
 	@echo "Checking generated data files..."
 	python scripts/check_data.py
+
+# Prepare Dev Data
+prepare-dev-data: download-musique
+	@echo "Preparing Musique DEV data (JSONL)..."
+	python scripts/train_data/prepare_musique_dev_jsonl.py
+	@echo "Processed Musique DEV JSONL ready in ./data/processed/questions_dev.jsonl"
 
 # Clean up
 clean:
