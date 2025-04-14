@@ -74,10 +74,20 @@ def search(query: str, return_type=str, results: int = 5):
 
 
 # Load questions from saved data
-def load_qa_data():
-    """Load the pre-generated questions"""
+def load_qa_data(questions_path=None):
+    """
+    Load the pre-generated questions
+
+    Args:
+        questions_path: Path to questions file (default: PROCESSED_DATA_DIR / "questions.jsonl")
+
+    Returns:
+        List of question-answer pairs
+    """
     try:
-        questions_path = PROCESSED_DATA_DIR / "questions.jsonl"
+        if questions_path is None:
+            questions_path = PROCESSED_DATA_DIR / "questions.jsonl"
+
         logger.info(f"Loading questions from: {questions_path}")
 
         # Load the questions
@@ -144,11 +154,11 @@ def get_question_count() -> int:
     return len(questions)
 
 
-def get_qa_dataset(randomize: bool = False, test_size: float = 0.1, seed: int = 42) -> tuple:
+def get_qa_dataset(randomize: bool = False, test_size: float = 0.1, seed: int = 42, questions_path=None) -> tuple:
     """
     Return a HuggingFace Dataset containing question and answer pairs.
 
-    This dataset is constructed from the loaded questions data (questions.json).
+    This dataset is constructed from the loaded questions data.
     Each element in the dataset is a dictionary that includes at least:
       - "question": The question text.
       - "answer": The corresponding answer text.
@@ -159,15 +169,21 @@ def get_qa_dataset(randomize: bool = False, test_size: float = 0.1, seed: int = 
         randomize: Whether to shuffle the dataset
         test_size: Proportion of the dataset to include in the test split (0 for train-only)
         seed: Random seed for reproducibility
+        questions_path: Path to questions.jsonl file (if None, uses globally loaded questions)
 
     Returns:
         A tuple of (train_dataset, test_dataset) HuggingFace Dataset objects.
         If test_size=0, test_dataset will be empty. If test_size=1, train_dataset will be empty.
     """
-    if questions is None:
-        raise ValueError("Questions not loaded. Please ensure questions.json exists.")
+    qa_data = questions
 
-    qa_dataset = Dataset.from_list(questions)
+    if questions_path is not None:
+        qa_data = load_qa_data(questions_path)
+
+    if qa_data is None:
+        raise ValueError("Questions not loaded. Please ensure questions.jsonl exists.")
+
+    qa_dataset = Dataset.from_list(qa_data)
     if randomize:
         qa_dataset = qa_dataset.shuffle(seed=seed)
 

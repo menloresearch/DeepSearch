@@ -5,7 +5,7 @@ Evaluation utilities for RL training.
 import inspect
 from datetime import datetime
 
-from config import logger
+from config import DATA_DIR, logger
 from src.agent import Agent
 from src.search_module import get_qa_dataset
 from src.tokenizer_adapter import LlamaTokenizerAdapter, R1DistilTokenizerAdapter
@@ -162,7 +162,11 @@ def run_eval(generate_fn, verify_fn, tokenizer, max_generations=20, output_file=
     Returns:
         full_chat_states: The chat states from evaluation
     """
-    train_dataset, test_dataset = get_qa_dataset()
+    train_dataset, test_dataset = get_qa_dataset(
+        randomize=False,
+        test_size=1,
+        questions_path=DATA_DIR / "processed" / "questions_dev.jsonl",
+    )
     questions = test_dataset["prompt"]
 
     # Create agent with appropriate adapter based on tokenizer

@@ -14,6 +14,7 @@ sys.path.append(project_root)
 from unsloth import FastLanguageModel
 from vllm import SamplingParams
 
+from config import logger
 from src import (
     apply_chat_template,
     build_reward_correctness_fn,
@@ -21,7 +22,6 @@ from src import (
     get_system_prompt,
     run_eval,
 )
-from config import logger
 
 
 def main():
@@ -45,6 +45,7 @@ def main():
         load_in_4bit=True,
         fast_inference=True,
         max_lora_rank=lora_config["r"],  # Use rank from config
+        gpu_memory_utilization=0.8,
     )
 
     # Setup LoRA using config
@@ -63,7 +64,7 @@ def main():
     sampling_params = SamplingParams(
         temperature=args.temperature,
         top_p=0.95,
-        max_tokens=4096,
+        max_tokens=4096 * 2,
     )
 
     # Setup verifier with lower temperature
@@ -134,6 +135,7 @@ def main():
         tokenizer=tokenizer,
         output_file=output_file,
         debug_file=debug_file,
+        max_generations=32,
     )
 
     logger.info("✨ Evaluation completed!")
