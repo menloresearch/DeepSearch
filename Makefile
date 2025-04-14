@@ -37,9 +37,9 @@ list-runs:
 	@echo "Available run directories:"
 	@ls -d trainer_output_*_runs 2>/dev/null || echo "No run directories found"
 
-# Data Preparation
-data: prepare-musique-jsonl
-	@echo "Data preparation complete."
+# Data Preparation - One command to rule them all
+data: download-musique prepare-musique-jsonl extract-musique-paragraphs build-musique-index prepare-dev-data check-data
+	@echo "✨ All data preparation complete! ✨"
 
 # Index Preparation
 prepare-musique-index: build-musique-index
@@ -70,7 +70,7 @@ prepare-all-musique: data prepare-musique-index
 	@echo "All Musique data and index preparation complete."
 
 # Check Data
-check-data: prepare-all-musique prepare-dev-data
+check-data:
 	@echo "Checking generated data files..."
 	python scripts/check_data.py
 
