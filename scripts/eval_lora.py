@@ -41,7 +41,7 @@ def main():
     # Setup model with LoRA support using config values
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model_name,
-        max_seq_length=4096 * 2,
+        max_seq_length=4096 * 6,
         load_in_4bit=True,
         fast_inference=True,
         max_lora_rank=lora_config["r"],  # Use rank from config
@@ -64,14 +64,14 @@ def main():
     sampling_params = SamplingParams(
         temperature=args.temperature,
         top_p=0.95,
-        max_tokens=4096 * 2,
+        max_tokens=4096 * 6,
     )
 
     # Setup verifier with lower temperature
     verifier_params = SamplingParams(
         temperature=0.1,  # Lower temperature for more consistent verification
         top_p=0.95,
-        max_tokens=4096,
+        max_tokens=4096 * 6,
     )
 
     def generate_fn(inputs):
@@ -136,6 +136,7 @@ def main():
         output_file=output_file,
         debug_file=debug_file,
         max_generations=32,
+        max_new_tokens=4096 * 6,
     )
 
     logger.info("✨ Evaluation completed!")

@@ -113,6 +113,7 @@ def main():
         output_file=output_file,
         debug_file=debug_file,
         max_generations=32,
+        max_new_tokens=4096 * 6,
     )
 
     logger.info("✨ Evaluation completed!")
