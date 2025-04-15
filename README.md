@@ -12,6 +12,10 @@ ReZero trains a small language model to develop effective search behaviors inste
 
 ## Quick Demo 🚀
 
+<div align="center">
+  <img src="assets/demo.gif" alt="ReZero Demo" width="1000px">
+</div>
+
 Run the interactive web interface to see ReZero in action:
 
 ```bash
@@ -22,12 +26,24 @@ This will launch a Gradio interface where you can interact with the model and te
 
 ## Setup 🛠️
 
-Clone and install:
-
 ```bash
+# Clone the repository
 git clone https://github.com/menloresearch/ReZero
 cd ReZero
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate the environment
+source .venv/bin/activate
+
+# Install dependencies
+pip install --upgrade pip
 pip install -e .
+
+# Set up environment variables (required for websearch demo)
+cp .env.example .env
+# Edit .env and add your Tavily API key if you want to use the websearch demo
 ```
 
 ## Data and Training 🧠
@@ -36,6 +52,12 @@ All necessary training data is included in the `data/` folder. To train:
 
 ```bash
 python train_grpo.py
+```
+
+If you want to regenerate the data, please run:
+
+```bash
+python scripts/generate_data.py
 ```
 
 ## Models 🤖
