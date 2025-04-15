@@ -56,6 +56,8 @@ def launch_sglang_server(
         host,
         "--port",
         str(port),
+        "--mem-fraction-static",
+        "0.5",
         "--trust-remote-code",
         # Recommended by SGLang for stability sometimes
         "--disable-overlap",

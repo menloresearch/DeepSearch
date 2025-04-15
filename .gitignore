@@ -18,7 +18,7 @@ logs/
 *.code-workspace
 data/
 .gradio/
-output_*
+output*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
