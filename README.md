@@ -2,7 +2,7 @@
 
 # ReZero: Enhancing LLM search ability by trying one-more-time
 
-<img width="2128" alt="ReZeroer" src="https://github.com/user-attachments/assets/f1145fe2-a452-4f23-ab0e-f1518c16aa55" />
+<img width="1200" alt="ReZeroer" src="assets/rezero.png" />
 
 ReZero trains a small language model to develop effective search behaviors instead of memorizing static data. It interacts with multiple synthetic search engines, each with unique retrieval mechanisms, to refine queries and persist in searching until it finds exact answers. The project focuses on reinforcement learning, preventing overfitting, and optimizing for efficiency in real-world search applications.
 
