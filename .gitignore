@@ -19,6 +19,7 @@ logs/
 data/
 .gradio/
 output*
+llama.cpp*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

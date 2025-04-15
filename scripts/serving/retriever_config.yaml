@@ -1,9 +1,0 @@
-# ------------------------------------------------Environment Settings------------------------------------------------#
-gpu_id: "0"
-
-# -------------------------------------------------Retrieval Settings------------------------------------------------#
-# If set the name, the model path will be find in global paths
-retrieval_method: "e5"  # name or path of the retrieval model. 
-index_path: "/mnt/nas/thinhlpg/data/data00/jiajie_jin/flashrag_indexes/wiki_dpr_100w/e5_flat_inner.index" # path to the indexed file
-faiss_gpu: False # whether use gpu to hold index
-corpus_path: "/mnt/nas/thinhlpg/code/DeepSearch/data/flashrag_datasets/wiki18_100w.jsonl"  # path to corpus in '.jsonl' format that store the documents
