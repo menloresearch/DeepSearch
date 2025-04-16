@@ -5,9 +5,9 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "src"
 version = "0.0.1"
-description = "A short description of the project."
+description = "ReZero: Enhancing LLM search ability by trying one-more-time"
 authors = [
-  { name = "Your name (or your organization/company/team)" },
+  { name = "Menlo Research" },
 ]
 readme = "README.md"
 classifiers = [
@@ -38,6 +38,5 @@ dependencies = [
     "requests>=2.31.0",
     "tqdm>=4.66.1",
     "tavily-python",
-    "sglang[all]>=0.4.5",
     "gdown",
 ]

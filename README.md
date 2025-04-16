@@ -10,20 +10,6 @@ ReZero trains a small language model to develop effective search behaviors inste
 
 </div>
 
-## Quick Demo 🚀
-
-<div align="center">
-  <img src="assets/demo.gif" alt="ReZero Demo" width="1000px">
-</div>
-
-Run the interactive web interface to see ReZero in action:
-
-```bash
-python app.py
-```
-
-This will launch a Gradio interface where you can interact with the model and test different search behaviors.
-
 ## Setup 🛠️
 
 ```bash
@@ -45,6 +31,20 @@ pip install -e .
 cp .env.example .env
 # Edit .env and add your Tavily API key if you want to use the websearch demo
 ```
+
+## Quick Demo 🚀
+
+<div align="center">
+  <img src="assets/demo.gif" alt="ReZero Demo" width="1000px">
+</div>
+
+Run the interactive web interface to see ReZero in action:
+
+```bash
+python app.py
+```
+
+This will launch a Gradio interface where you can interact with the model and test different search behaviors.
 
 ## Data and Training 🧠
 
