@@ -12,7 +12,7 @@ from langchain_community.vectorstores import FAISS
 from config import DATA_DIR, logger
 from src.embeddings import CustomHuggingFaceEmbeddings
 
-PROCESSED_DATA_DIR = DATA_DIR / "processed"
+PROCESSED_DATA_DIR = DATA_DIR
 
 
 # Load pre-saved vectorstore

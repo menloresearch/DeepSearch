@@ -1,14 +1,11 @@
 """
 This script performs two main tasks:
 1. It loads a markdown document, splits it into chunks, generates embeddings,
-   and builds a FAISS index (which is saved locally).
+   and builds a FAISS index with the original and paraphrased chunks (which is saved locally).
 2. It generates QA pairs from the document using llama.
    For each chunk (using a sliding window for context), it generates multiple question-answer pairs
    with different difficulties. The generation is performed in batch with one retry for failed prompts.
-   Successfully generated QA pairs are saved to "data/questions.json".
-
-Requirements:
-    pip install langchain faiss-cpu unsloth vllm
+   Successfully generated QA pairs are saved to "data/questions.jsonl".
 """
 
 import json
@@ -21,12 +18,12 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
 import pandas as pd
+from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# ========= Part 1: Document Processing and Embedding Generation =========
-# Load and split the markdown document using LangChain
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_community.vectorstores import FAISS
+from unsloth import FastLanguageModel
+from vllm import SamplingParams
 
 from config import DATA_DIR, logger
 from src.embeddings import CustomHuggingFaceEmbeddings
@@ -57,13 +54,10 @@ vectorstore = FAISS.from_documents(chunks, embeddings)
 vectorstore.save_local(str(DATA_DIR))
 logger.info(f"Saved FAISS index to {DATA_DIR}")
 
-# TODO: add the paraphrased chunks to the vector store
 
 # ========= Part 2: QA Generation using Llama Backend =========
 
 # Setup Llama backend via unsloth and vLLM
-from unsloth import FastLanguageModel
-from vllm import SamplingParams
 
 # Load the Llama model (adjust parameters as needed)
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -80,6 +74,127 @@ sampling_params = SamplingParams(
     top_p=0.95,
     max_tokens=4096,
 )
+
+# Define paraphrasing styles and parameters
+PARAPHRASE_PROMPTS = [
+    """Rewrite this text in a formal, scholarly tone. Keep it very concise - summarize in 1-2 short sentences. Only output the paraphrased text:
+
+    TEXT: {text}""",
+    """Rewrite this text in a clear, simple way that's easy to understand. Provide a medium-length explanation with key details. Only output the paraphrased text:
+
+    TEXT: {text}""",
+    """Rewrite this text in a vivid, engaging style. Expand on the details and provide a comprehensive, detailed version. Only output the paraphrased text:
+
+    TEXT: {text}""",
+]
+
+# Sampling parameters for different lengths
+sampling_params_short = SamplingParams(
+    temperature=0.3,
+    top_p=0.95,
+    max_tokens=64,  # Short responses
+)
+
+sampling_params_medium = SamplingParams(
+    temperature=0.3,
+    top_p=0.95,
+    max_tokens=256,  # Medium responses
+)
+
+sampling_params_long = SamplingParams(
+    temperature=0.3,
+    top_p=0.95,
+    max_tokens=512,  # Long responses
+)
+
+
+def generate_paraphrases(text: str) -> list:
+    """
+    Generate three different paraphrased versions with varying lengths.
+
+    Args:
+        text: Text to paraphrase
+
+    Returns:
+        List of three paraphrased versions (short, medium, long)
+    """
+    responses = []
+    sampling_params_list = [
+        sampling_params_short,
+        sampling_params_medium,
+        sampling_params_long,
+    ]
+
+    for prompt_template, sampling_params in zip(PARAPHRASE_PROMPTS, sampling_params_list):
+        formatted_prompt = tokenizer.apply_chat_template(
+            [{"role": "user", "content": prompt_template.format(text=text)}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+
+        output = model.fast_generate([formatted_prompt], sampling_params=sampling_params)
+        responses.append(output[0].outputs[0].text)
+
+    return responses
+
+
+# Paraphrase all chunks and add to vector store
+logger.info("Paraphrasing chunks and adding to vector store...")
+all_paraphrased = []
+chunk_ids = []
+
+for i, chunk in enumerate(chunks):
+    # Get paragraphs from chunk
+    paragraphs = [p.strip() for p in chunk.page_content.split("\n\n") if p.strip()]
+
+    for paragraph in paragraphs:
+        # Generate 3 paraphrased versions
+        paraphrased_versions = generate_paraphrases(paragraph)
+
+        # Save original paragraph ID for reference
+        for version in paraphrased_versions:
+            all_paraphrased.append({"chunk_id": i + 1, "original_paragraph": paragraph, "paraphrased_text": version})
+
+# Save paraphrased chunks to CSV for inspection
+paraphrased_df = pd.DataFrame(all_paraphrased)
+paraphrased_csv_path = DATA_DIR / "paragraphs_noise.csv"
+paraphrased_df.to_csv(paraphrased_csv_path, index=False)
+logger.info(f"Saved {len(all_paraphrased)} paraphrased paragraphs to {paraphrased_csv_path}")
+
+
+paraphrased_docs = [
+    Document(page_content=item["paraphrased_text"], metadata={"chunk_id": item["chunk_id"], "is_paraphrase": True})
+    for item in all_paraphrased
+]
+
+# Process embeddings in smaller batches to avoid OOM
+logger.info(f"Creating FAISS index with {len(paraphrased_docs)} documents in batches")
+batch_size = 100  # Process 100 documents at a time
+paraphrased_vectorstore = None
+
+for i in range(0, len(paraphrased_docs), batch_size):
+    batch = paraphrased_docs[i : i + batch_size]
+    logger.info(f"Processing batch {i // batch_size + 1}/{(len(paraphrased_docs) + batch_size - 1) // batch_size}")
+
+    # Create a new FAISS index for this batch
+    batch_vectorstore = FAISS.from_documents(batch, embeddings)
+
+    # Merge with existing index or create a new one
+    if paraphrased_vectorstore is None:
+        paraphrased_vectorstore = batch_vectorstore
+    else:
+        paraphrased_vectorstore.merge_from(batch_vectorstore)
+
+# Merge with main vectorstore
+if paraphrased_vectorstore is not None:
+    vectorstore.merge_from(paraphrased_vectorstore)
+    logger.info(f"Updated FAISS index with {len(paraphrased_docs)} paraphrased paragraphs")
+
+    # Save the updated vector store
+    vectorstore.save_local(str(DATA_DIR))
+    logger.info(f"Saved updated FAISS index to {DATA_DIR}")
+else:
+    logger.warning("No paraphrased documents were processed successfully")
 
 
 def batch_generate(prompts: list) -> list:
@@ -148,9 +263,7 @@ def parse_multiple_qa_output(output: str) -> list:
     return qa_pairs
 
 
-def generate_question_batch_for_chunks(
-    chunks: list, num_questions: int = 2, difficulty=None
-) -> list:
+def generate_question_batch_for_chunks(chunks: list, num_questions: int = 2, difficulty=None) -> list:
     """
     Generates QA pairs for multiple chunks in batch.
 
@@ -233,9 +346,7 @@ def generate_question_batch_for_chunks(
                     results[idx] = valid_pairs[:num_questions]
                 else:
                     results[idx] = None
-                    logger.warning(
-                        f"Retry failed for chunk {idx + 1}: not enough valid QA pairs"
-                    )
+                    logger.warning(f"Retry failed for chunk {idx + 1}: not enough valid QA pairs")
             else:
                 results[idx] = None
                 logger.warning(f"Retry failed for chunk {idx + 1}: parsing failed")
@@ -245,13 +356,15 @@ def generate_question_batch_for_chunks(
     for i, qa_list in enumerate(results):
         if qa_list is not None:
             for qa in qa_list:
+                # Get supporting paragraphs by splitting chunk content into paragraphs
+                supporting_paragraphs = [p.strip() for p in chunk_contents[i].split("\n\n") if p.strip()]
+
                 final_questions.append(
                     {
-                        "chunk_id": chunk_ids[i],
+                        "id": str(chunk_ids[i]),
                         "question": qa[0],
                         "answer": qa[1],
-                        "difficulty": qa[2],
-                        "chunk_content": chunk_contents[i],
+                        "supporting_paragraphs": supporting_paragraphs,
                     }
                 )
 
@@ -260,13 +373,13 @@ def generate_question_batch_for_chunks(
 
 
 # Generate QA pairs in batch (using a sliding window over the chunks)
-all_questions = generate_question_batch_for_chunks(
-    chunks, num_questions=2, difficulty="medium"
-)
+logger.info("Generating question-answer pairs...")
+all_questions = generate_question_batch_for_chunks(chunks, num_questions=2, difficulty="medium")
 logger.info(f"Generated {len(all_questions)} QA pairs.")
 
-# Save the QA pairs to a JSON file
-questions_path = DATA_DIR / "questions.json"
+# Save the QA pairs to a JSONL file
+questions_path = DATA_DIR / "questions.jsonl"
 with open(questions_path, "w") as f:
-    json.dump(all_questions, f, indent=2)
+    for question in all_questions:
+        f.write(json.dumps(question) + "\n")
 logger.info(f"Saved questions to {questions_path}")

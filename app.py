@@ -251,7 +251,7 @@ def create_deepsearch_tab(model, tokenizer, assistant_marker, system_prompt, tem
                     gr.ChatMessage(
                         role="assistant",
                         content=f"Searching for: {search_query}",
-                        metadata={"title": "🔍 Search", "status": "pending"},
+                        metadata={"title": "🔍 ReZero Query", "status": "pending"},
                     )
                 )
                 yield messages
@@ -263,7 +263,7 @@ def create_deepsearch_tab(model, tokenizer, assistant_marker, system_prompt, tem
                     messages[search_msg_idx] = gr.ChatMessage(
                         role="assistant",
                         content=f"{search_query}",
-                        metadata={"title": "🔍 Search", "duration": search_duration},
+                        metadata={"title": "🔍 ReZero Query", "duration": search_duration},
                     )
                     yield messages
                     display_results = format_search_results(results)
@@ -630,7 +630,7 @@ def create_tavily_tab(model, tokenizer, assistant_marker, system_prompt, tempera
                     gr.ChatMessage(
                         role="assistant",
                         content=f"Searching (Tavily) for: {search_query}",
-                        metadata={"title": "🔍 Tavily Search", "status": "pending"},
+                        metadata={"title": "🔍 ReZero Query", "status": "pending"},
                     )
                 )
                 yield messages
@@ -664,7 +664,7 @@ def create_tavily_tab(model, tokenizer, assistant_marker, system_prompt, tempera
                     messages[search_msg_idx] = gr.ChatMessage(
                         role="assistant",
                         content=f"{search_query}",
-                        metadata={"title": "🔍 Tavily Search", "duration": search_duration},
+                        metadata={"title": "🔍 ReZero Query", "duration": search_duration},
                     )
                     yield messages
 

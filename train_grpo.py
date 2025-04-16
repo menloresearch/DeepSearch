@@ -2,8 +2,6 @@
 Train a model using GRPO (Generative Reward-Penalized Optimization).
 """
 
-import os
-
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
 import src.UnslothGRPOTrainerTemp as UnslothGRPOTrainerTemp
@@ -64,7 +62,7 @@ model = FastLanguageModel.get_peft_model(
 
 # Load datasets
 logger.info("Loading datasets")
-train_dataset, test_dataset = get_qa_dataset(randomize=True, test_size=0, seed=42)
+train_dataset, test_dataset = get_qa_dataset(randomize=False, test_size=0.1, seed=42)
 logger.info(f"Loaded {len(train_dataset)} training examples and {len(test_dataset)} test examples")
 
 # Setup training arguments
@@ -76,7 +74,7 @@ training_args = UnslothGRPOTrainerTemp.UnslothGRPOConfig(
     bf16=is_bfloat16_supported(),
     fp16=not is_bfloat16_supported(),
     output_dir=OUTPUT_DIR,
-    reward_weights=[2.0, 1.0, 1.0, 1.0],
+    reward_weights=[4.0, 2.0, 1.0, 1.0, 1.0, 1.0],
 )
 
 
@@ -85,6 +83,7 @@ def agentic_generate(
     prompts: list,
     generate_fn,
     max_generations: int = 32,
+    max_new_tokens: int = 4096 * 2,
 ):
     # Create agent with appropriate adapter based on tokenizer
     tokenizer_name = tokenizer.name_or_path.lower()
@@ -98,7 +97,7 @@ def agentic_generate(
         raise ValueError(f"Unsupported tokenizer: {tokenizer_name}")
 
     agent = Agent(adapter)
-    return agent.run_agent(generate_fn, tokenizer, prompts, max_generations)
+    return agent.run_agent(generate_fn, tokenizer, prompts, max_generations, max_new_tokens=max_new_tokens)
 
 
 model.agentic_generate = agentic_generate
@@ -128,8 +127,8 @@ trainer = UnslothGRPOTrainerTemp.UnslothGRPOTrainer(
         reward_format,
         reward_retry,
         reward_em_chunk,
-        # reward_search_strategy,
-        # reward_search_diversity,
+        reward_search_strategy,
+        reward_search_diversity,
     ],
     args=training_args,
     train_dataset=train_dataset,
