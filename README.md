@@ -64,9 +64,9 @@ python scripts/generate_data.py
 
 You can find our models on Hugging Face 🤗! We're committed to open-source and easy access for the research community.
 
-| Model | Backbone | Size | Link |
-|-------|----------|------|------|
-| ReZero-v0.1 | Llama-3.2-3B | 3B | [🤗 Menlo/ReZero-v0.1-llama-3.2-3b-it-grpo-250404](https://huggingface.co/Menlo/ReZero-v0.1-llama-3.2-3b-it-grpo-250404) |
+| Model | Backbone | Size | Link | GGUF |
+|-------|----------|------|------|------|
+| ReZero-v0.1 | Llama-3.2-3B | 3B | [🤗 Menlo/ReZero-v0.1-llama-3.2-3b-it-grpo-250404](https://huggingface.co/Menlo/ReZero-v0.1-llama-3.2-3b-it-grpo-250404) | [🤗 GGUF](https://huggingface.co/Menlo/ReZero-v0.1-llama-3.2-3b-it-grpo-250404-gguf) |
 
 ## Experiments 🧪
 
